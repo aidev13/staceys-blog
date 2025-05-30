@@ -66,52 +66,6 @@ async function loadPosts() {
   }
 }
 
-// Render posts for current page
-function renderPage(page) {
-  currentPage = page;
-  const start = (page - 1) * POSTS_PER_PAGE;
-  const end = start + POSTS_PER_PAGE;
-  const pagePosts = allPosts.slice(start, end);
-
-  postsDiv.innerHTML = pagePosts
-    .map((post, index) => {
-      const previewLimit = 150;
-      const isLong = post.body.length > previewLimit;
-      const previewText = isLong
-        ? post.body.slice(0, previewLimit) + "..."
-        : post.body;
-
-      return `
-    <article class="bg-gray-800 p-6 rounded-lg shadow-md">
-      <h3 class="text-xl font-semibold text-purple-400 mb-2">${post.title}</h3>
-      <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
-        post.body
-      )}" data-index="${index}">
-        ${escapeHtml(previewText)}
-      </p>
-      ${
-        isLong
-          ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
-          : ""
-      }
-     <p class="text-xs text-gray-500">
-  by ${post.author || "Anon"} on ${new Date(
-        post.createdAt
-      ).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString(
-        [],
-        { hour: "2-digit", minute: "2-digit" }
-      )}
-</p>
-
-    </article>
-    `;
-    })
-    .join("");
-
-  addToggleListeners();
-  renderPagination();
-}
-
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
   return text
@@ -122,7 +76,91 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-// Add expand/collapse toggle listeners
+// Validate MongoDB ObjectId (24 hex chars)
+function isValidObjectId(id) {
+  return /^[a-f\d]{24}$/i.test(id);
+}
+
+// Load comment counts only for valid MongoDB ObjectIds
+async function loadCommentCounts(postIds) {
+  // Filter valid IDs
+  const validIds = postIds.filter(isValidObjectId);
+  if (validIds.length === 0) return {};
+
+  try {
+    const res = await fetch(
+      `${api}/comments/counts?postIds=${validIds.join(",")}`
+    );
+    if (!res.ok)
+      throw new Error(`Failed to load comment counts: ${res.statusText}`);
+
+    const data = await res.json();
+    const counts = {};
+    data.forEach(({ _id, count }) => {
+      counts[_id] = count;
+    });
+    return counts;
+  } catch (err) {
+    console.error(err);
+    return {}; // fail gracefully
+  }
+}
+
+// Render a single page of posts
+async function renderPage(page) {
+  currentPage = page;
+  const start = (page - 1) * POSTS_PER_PAGE;
+  const end = start + POSTS_PER_PAGE;
+  const pagePosts = allPosts.slice(start, end);
+  const postIds = pagePosts.map((p) => p._id);
+  const commentCounts = await loadCommentCounts(postIds);
+
+  postsDiv.innerHTML = pagePosts
+    .map((post, index) => {
+      const previewLimit = 150;
+      const isLong = post.body.length > previewLimit;
+      const previewText = isLong
+        ? post.body.slice(0, previewLimit) + "..."
+        : post.body;
+
+      const count = commentCounts[post._id] || 0;
+
+      return `
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${
+            post.title
+          }</h3>
+          <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
+            post.body
+          )}" data-index="${index}">
+            ${escapeHtml(previewText)}
+          </p>
+          ${
+            isLong
+              ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
+              : ""
+          }
+          <p class="text-xs text-gray-500">
+            by ${post.author || "Anon"} on ${new Date(
+        post.createdAt
+      ).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString(
+        [],
+        { hour: "2-digit", minute: "2-digit" }
+      )}
+          </p>
+          <p class="text-sm text-purple-400 mt-2">💬 ${count} comment${
+        count !== 1 ? "s" : ""
+      }</p>
+        </article>
+      `;
+    })
+    .join("");
+
+  addToggleListeners();
+  renderPagination();
+}
+
+// Toggle "Read more" / "Show less"
 function addToggleListeners() {
   const buttons = document.querySelectorAll(".toggle-btn");
   buttons.forEach((button) => {
@@ -149,44 +187,40 @@ function addToggleListeners() {
   });
 }
 
+// Render pagination controls
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
-  const container = document.getElementById("paginationControls");
-
   let buttonsHTML = `
-        <button ${currentPage === 1 ? "disabled" : ""}
-          onclick="goToPage(${currentPage - 1})"
-          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-          Prev
-        </button>
-      `;
+    <button ${currentPage === 1 ? "disabled" : ""}
+      onclick="goToPage(${currentPage - 1})"
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Prev
+    </button>
+  `;
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-          <button
-            onclick="goToPage(${i})"
-            class="px-3 py-1 rounded transition ${
-              currentPage === i
-                ? "bg-purple-600"
-                : "bg-gray-700 hover:bg-gray-600"
-            }"
-          >
-            ${i}
-          </button>
-        `;
+      <button onclick="goToPage(${i})"
+        class="px-3 py-1 rounded transition ${
+          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
+        }">
+        ${i}
+      </button>
+    `;
   }
 
   buttonsHTML += `
-        <button ${currentPage === totalPages ? "disabled" : ""}
-          onclick="goToPage(${currentPage + 1})"
-          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-          Next
-        </button>
-      `;
+    <button ${currentPage === totalPages ? "disabled" : ""}
+      onclick="goToPage(${currentPage + 1})"
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Next
+    </button>
+  `;
 
-  container.innerHTML = buttonsHTML;
+  paginationDiv.innerHTML = buttonsHTML;
 }
 
+// Page navigation
 function goToPage(page) {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   if (page < 1 || page > totalPages) return;
@@ -195,7 +229,7 @@ function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Post creation
+// Create a new post
 if (postForm) {
   postForm.addEventListener("submit", async (e) => {
     e.preventDefault();
