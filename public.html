@@ -9,7 +9,6 @@
 </head>
 
 <body class="font-sans">
-
     <!-- Navbar -->
     <nav class="bg-gray-800 shadow-md">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -66,55 +65,60 @@
 
         updateDateTime()
         setInterval(updateDateTime, 1000)
-    </script>
 
-    <script>
         const api = 'http://localhost:3000/api'
         const POSTS_PER_PAGE = 5
         let currentPage = 1
         let allPosts = []
 
         async function loadPosts() {
-            // Fetch all posts once
             const res = await fetch(`${api}/posts`)
             allPosts = await res.json()
-
             renderPage(currentPage)
         }
 
-        async function renderPage(page) {
+        function renderPage(page) {
             const start = (page - 1) * POSTS_PER_PAGE
             const end = start + POSTS_PER_PAGE
             const pagePosts = allPosts.slice(start, end)
 
-            const postsHTML = await Promise.all(pagePosts.map(async post => {
-                const commentsRes = await fetch(`${api}/comments/${post._id}`)
-                const comments = await commentsRes.json()
+            const postsHTML = pagePosts.map(post => {
+                const previewText = post.body.split('. ').slice(0, 2).join('. ') + '...'
+                const createdAt = new Date(post.createdAt).toLocaleString(undefined, {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
 
-                const commentsHTML = comments.map(c => `
-          <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
-            <strong class="text-teal-300">${c.username || 'Anon'}:</strong> ${c.text}
-          </div>
-        `).join('')
 
                 return `
-          <div class="bg-gray-800 p-5 rounded-lg shadow-md">
+          <div class="bg-gray-800 p-5 rounded-lg shadow-md" id="post-${post._id}">
             <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
-            <p class="text-gray-300 mb-2">${post.body}</p>
-            <p class="text-xs text-gray-500 mb-3">by ${post.author || 'Anon'} on ${new Date(post.createdAt).toLocaleDateString()}</p>
-            <hr class="border-gray-600 mb-3" />
-            <h4 class="text-sm text-teal-300 mb-2">Comments</h4>
-            ${commentsHTML || '<p class="text-gray-500 text-sm">No comments yet.</p>'}
-            <form onsubmit="return postComment('${post._id}', this)" class="mt-4 space-y-2">
-              <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
-              <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
-              <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
-            </form>
+            <p class="text-gray-300 mb-2" id="preview-${post._id}">${previewText}</p>
+            <button id="readMoreBtn-${post._id}" onclick="expandPost('${post._id}')" class="text-sm text-teal-300 hover:underline">Read More</button>
+
+            <div id="full-${post._id}" class="hidden mt-4 space-y-2">
+              <p class="text-gray-300">${post.body}</p>
+              <p class="text-xs text-gray-500 mb-3">by ${post.author || 'Anon'} on ${createdAt}</p>
+              <hr class="border-gray-600 mb-3" />
+              <div id="comments-${post._id}">
+                <p class="text-sm text-gray-400">Loading comments...</p>
+              </div>
+              <form onsubmit="return postComment('${post._id}', this)" class="mt-4 space-y-2">
+                <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
+                <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
+                <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
+              </form>
+              <button onclick="collapsePost('${post._id}')" class="text-sm text-teal-300 hover:underline">Collapse</button>
+            </div>
           </div>
         `
-            }))
+            }).join('')
 
-            document.getElementById('postsContainer').innerHTML = postsHTML.join('')
+            document.getElementById('postsContainer').innerHTML = postsHTML
             renderPagination()
         }
 
@@ -123,14 +127,13 @@
             const container = document.getElementById('paginationControls')
 
             let buttonsHTML = `
-        <button ${currentPage === 1 ? 'disabled' : ''} 
-          onclick="goToPage(${currentPage - 1})" 
+        <button ${currentPage === 1 ? 'disabled' : ''}
+          onclick="goToPage(${currentPage - 1})"
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
           Prev
         </button>
       `
 
-            // Optional: Show page numbers (1 2 3 ...)
             for (let i = 1; i <= totalPages; i++) {
                 buttonsHTML += `
           <button
@@ -143,8 +146,8 @@
             }
 
             buttonsHTML += `
-        <button ${currentPage === totalPages ? 'disabled' : ''} 
-          onclick="goToPage(${currentPage + 1})" 
+        <button ${currentPage === totalPages ? 'disabled' : ''}
+          onclick="goToPage(${currentPage + 1})"
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
           Next
         </button>
@@ -161,6 +164,34 @@
             window.scrollTo({ top: 0, behavior: 'smooth' })
         }
 
+        async function expandPost(postId) {
+            document.getElementById(`preview-${postId}`).classList.add('hidden')
+            document.getElementById(`readMoreBtn-${postId}`).classList.add('hidden')
+            document.getElementById(`full-${postId}`).classList.remove('hidden')
+
+            const res = await fetch(`${api}/comments/${postId}`)
+            const comments = await res.json()
+
+            const commentsHTML = comments.length
+                ? comments.map(c => `
+            <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
+              <strong class="text-teal-300">${c.username || 'Anon'}:</strong> ${c.text}
+            </div>
+          `).join('')
+                : '<p class="text-gray-500 text-sm">No comments yet.</p>'
+
+            document.getElementById(`comments-${postId}`).innerHTML = `
+        <h4 class="text-sm text-teal-300 mb-2">Comments</h4>
+        ${commentsHTML}
+      `
+        }
+
+        function collapsePost(postId) {
+            document.getElementById(`preview-${postId}`).classList.remove('hidden')
+            document.getElementById(`readMoreBtn-${postId}`).classList.remove('hidden')
+            document.getElementById(`full-${postId}`).classList.add('hidden')
+        }
+
         async function postComment(postId, form) {
             const data = {
                 username: form.username.value,
@@ -174,7 +205,7 @@
             })
 
             form.text.value = ''
-            loadPosts()  // reload all posts & comments — you can optimize this later if needed
+            loadPosts()
             return false
         }
 
