@@ -31,35 +31,49 @@
 
         <!-- Latest Posts -->
         <section class="mb-14 max-w-3xl mx-auto">
-            <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-teal-400">Latest Posts</h2>
+            <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-purple-400">Latest Posts</h2>
             <div id="posts" class="space-y-8"></div>
         </section>
 
         <!-- Pagination Controls -->
-        <div id="paginationControls" class="max-w-3xl mx-auto flex justify-center gap-2 mb-14 text-gray-300"></div>
+        <div id="paginationControls" class="flex justify-center items-center space-x-4 mb-6 text-gray-300"></div>
+
 
         <!-- Create Post Form -->
         <section class="max-w-xl mx-auto px-4">
-            <h2 class="text-xl font-semibold mb-6 text-teal-300">Create a New Post</h2>
+            <h2 class="text-xl font-semibold mb-6 text-purple-300">Create a New Post</h2>
             <form id="createPostForm" class="space-y-6 bg-gray-800 p-6 rounded-lg shadow-lg">
                 <div>
                     <label for="title" class="block mb-2 font-medium text-gray-300">Post Title</label>
                     <input type="text" id="title" placeholder="Enter title..." required
-                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition" />
                 </div>
                 <div>
                     <label for="body" class="block mb-2 font-medium text-gray-300">Post Content</label>
                     <textarea id="body" rows="5" placeholder="Write something..." required
-                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"></textarea>
+                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition"></textarea>
                 </div>
                 <button type="submit"
-                    class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-md shadow-md transition">
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-md shadow-md transition">
                     Publish Post
                 </button>
             </form>
         </section>
 
     </main>
+
+    <footer class="bg-gray-800 text-gray-300 py-6 mt-12">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <img src="https://flagcdn.com/us.svg" alt="US Flag" class="inline w-6 h-4" />
+                <span id="datetime" class="text-gray-400"></span>
+            </div>
+            <div class="text-purple-400 font-semibold">🎗️ NICU Awareness</div>
+            <div class="text-center sm:text-right text-gray-400 italic">
+                Blog built by David Liebherr - Dedicated to my wife and family
+            </div>
+        </div>
+    </footer>
 
     <script src="script.js" type="module"></script>
 

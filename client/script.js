@@ -83,7 +83,7 @@ function renderPage(page) {
 
       return `
     <article class="bg-gray-800 p-6 rounded-lg shadow-md">
-      <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
+      <h3 class="text-xl font-semibold text-purple-400 mb-2">${post.title}</h3>
       <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
         post.body
       )}" data-index="${index}">
@@ -91,7 +91,7 @@ function renderPage(page) {
       </p>
       ${
         isLong
-          ? `<button class="toggle-btn text-teal-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
+          ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
           : ""
       }
      <p class="text-xs text-gray-500">
@@ -149,55 +149,51 @@ function addToggleListeners() {
   });
 }
 
-// Render pagination controls
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
-  if (totalPages === 0) {
-    paginationDiv.innerHTML = "";
-    return;
-  }
+  const container = document.getElementById("paginationControls");
 
   let buttonsHTML = `
-    <button ${currentPage === 1 ? "disabled" : ""}
-      onclick="goToPage(${currentPage - 1})"
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-    >Prev</button>
-  `;
+        <button ${currentPage === 1 ? "disabled" : ""}
+          onclick="goToPage(${currentPage - 1})"
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+          Prev
+        </button>
+      `;
 
-  let startPage = Math.max(1, currentPage - 2);
-  let endPage = Math.min(totalPages, startPage + 4);
-  if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-  for (let i = startPage; i <= endPage; i++) {
+  for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-      <button
-        onclick="goToPage(${i})"
-        class="px-3 py-1 rounded transition ${
-          currentPage === i ? "bg-teal-600" : "bg-gray-700 hover:bg-gray-600"
-        }"
-      >
-        ${i}
-      </button>
-    `;
+          <button
+            onclick="goToPage(${i})"
+            class="px-3 py-1 rounded transition ${
+              currentPage === i
+                ? "bg-purple-600"
+                : "bg-gray-700 hover:bg-gray-600"
+            }"
+          >
+            ${i}
+          </button>
+        `;
   }
 
   buttonsHTML += `
-    <button ${currentPage === totalPages ? "disabled" : ""}
-      onclick="goToPage(${currentPage + 1})"
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-    >Next</button>
-  `;
+        <button ${currentPage === totalPages ? "disabled" : ""}
+          onclick="goToPage(${currentPage + 1})"
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+          Next
+        </button>
+      `;
 
-  paginationDiv.innerHTML = buttonsHTML;
+  container.innerHTML = buttonsHTML;
 }
 
-// Pagination navigation
-window.goToPage = function (page) {
+function goToPage(page) {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   if (page < 1 || page > totalPages) return;
-  renderPage(page);
+  currentPage = page;
+  renderPage(currentPage);
   window.scrollTo({ top: 0, behavior: "smooth" });
-};
+}
 
 // Post creation
 if (postForm) {
