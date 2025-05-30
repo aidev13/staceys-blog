@@ -52,7 +52,7 @@ function renderPage(page) {
           </div>
           <h3 class="text-xl font-semibold text-purple-400 mb-2">${post.title}</h3>
           <p class="text-gray-300 mb-2" id="preview-${post._id}">${previewText}</p>
-          <button id="readMoreBtn-${post._id}" onclick="expandPost('${post._id}')" class="text-sm text-purple-300 hover:underline">Read More</button>
+          <button id="readMoreBtn-${post._id}" onclick="expandPost('${post._id}')" class="text-sm text-purple-300 hover:underline">Read More/Comment</button>
 
           <div id="full-${post._id}" class="hidden mt-4 space-y-2">
             <p class="text-gray-300">${post.body}</p>

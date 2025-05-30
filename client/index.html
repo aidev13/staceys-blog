@@ -19,9 +19,6 @@
             <div class="space-x-2">
                 <a href="../public.html"
                     class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Public</a>
-                <a href="#"
-                    class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Log
-                    out</a>
             </div>
         </div>
     </nav>
@@ -30,10 +27,13 @@
     <main class="container mx-auto px-6 flex-grow">
 
         <!-- Latest Posts -->
-        <section class="mb-14 max-w-3xl mx-auto">
+        <section class="mb-7 mt-5 max-w-3xl mx-auto">
             <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-purple-400">Latest Posts</h2>
             <div id="posts" class="space-y-8"></div>
         </section>
+        <div class="flex justify-center mb-7">
+           <img src="/img/NICU.png" alt="NICU Awareness" class="w-12 h-12" />
+       </div>
 
         <!-- Pagination Controls -->
         <div id="paginationControls" class="flex justify-center items-center space-x-4 mb-6 text-gray-300"></div>
@@ -68,7 +68,10 @@
                 <img src="https://flagcdn.com/us.svg" alt="US Flag" class="inline w-6 h-4" />
                 <span id="datetime" class="text-gray-400"></span>
             </div>
-            <div class="text-purple-400 font-semibold">🎗️ NICU Awareness</div>
+            <div class="flex items-center gap-3 text-purple-400 font-semibold">
+                <img src="/img/NICU.png" alt="NICU Awareness" class="w-8 h-8" />
+                NICU Awareness
+            </div>
             <div class="text-center sm:text-right text-gray-400 italic">
                 Blog built by David Liebherr - Dedicated to my wife and family
             </div>
