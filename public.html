@@ -35,10 +35,10 @@
                 class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
                 Login
             </a>
-            <a href="./client/index.html"
-                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
+            <button"
+                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2 profileBtn">
                 Profile
-            </a>
+            </button>
             <!-- Add more links here -->
         </div>
     </nav>
@@ -85,13 +85,18 @@
     </footer>
 
     <script src="./public_script.js"></script>
-    <script>
-        if (localStorage.setItem("IsLoggedIn") === false) {
-            alert("You do not have the rights to be here...")
-            window.location = './public.html'
-        }
+      <script>
+        const profileBtn = document.querySelector('.profileBtn')
 
+        profileBtn.addEventListener("click", () => {
+            if (localStorage.getItem("IsLoggedIn") !== "true") {
+                alert("You do not have the rights to be here...");
+            }else {
+                window.location = "./client/index.html"
+            }
+        });
     </script>
+
 </body>
 
 </html>
