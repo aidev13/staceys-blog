@@ -1,102 +1,96 @@
 <!DOCTYPE html>
 <html lang="en" class="bg-gray-900 text-gray-100">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Simple Blog</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple Blog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="min-h-screen flex flex-col">
 
-  <!-- Navbar -->
-  <nav class="bg-gray-800 shadow-md">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-      <a href="index.html" class="text-lg font-semibold text-white">
-        Stacey & Jordan's Journey – A Thread
-      </a>
-      <div class="space-x-2">
-        <a href="../public.html" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Common room</a>
-        <a href="#" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Log out</a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="container mx-auto px-6 flex-grow">
-
-    <!-- Latest Posts -->
-    <section class="mb-14 max-w-3xl mx-auto">
-      <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-teal-400">Latest Posts</h2>
-      <div id="posts" class="space-y-8"></div>
-    </section>
-
-    <!-- Pagination Controls -->
-    <div id="paginationControls" class="max-w-3xl mx-auto flex justify-center gap-2 mb-14 text-gray-300"></div>
-
-    <!-- Create Post Form -->
-    <section class="max-w-xl mx-auto px-4">
-      <h2 class="text-xl font-semibold mb-6 text-teal-300">Create a New Post</h2>
-      <form id="createPostForm" class="space-y-6 bg-gray-800 p-6 rounded-lg shadow-lg">
-        <div>
-          <label for="title" class="block mb-2 font-medium text-gray-300">Post Title</label>
-          <input
-            type="text"
-            id="title"
-            placeholder="Enter title..."
-            required
-            class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
-          />
+    <!-- Navbar -->
+    <nav class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="index.html" class="text-lg font-semibold text-white">
+                Stacey & Jordan's Journey – A Thread
+            </a>
+            <div class="space-x-2">
+                <a href="../public.html"
+                    class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Common
+                    room</a>
+                <a href="#"
+                    class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Log
+                    out</a>
+            </div>
         </div>
-        <div>
-          <label for="body" class="block mb-2 font-medium text-gray-300">Post Content</label>
-          <textarea
-            id="body"
-            rows="5"
-            placeholder="Write something..."
-            required
-            class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
-          ></textarea>
-        </div>
-        <button
-          type="submit"
-          class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-md shadow-md transition"
-        >
-          Publish Post
-        </button>
-      </form>
-    </section>
+    </nav>
 
-  </main>
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 flex-grow">
 
-  <script>
-    const api = 'http://localhost:3000/api'
-    const POSTS_PER_PAGE = 5
-    let currentPage = 1
-    let allPosts = []
+        <!-- Latest Posts -->
+        <section class="mb-14 max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-teal-400">Latest Posts</h2>
+            <div id="posts" class="space-y-8"></div>
+        </section>
 
-    async function loadPosts() {
-      const res = await fetch(`${api}/posts`)
-      allPosts = await res.json()
-      renderPage(currentPage)
-    }
+        <!-- Pagination Controls -->
+        <div id="paginationControls" class="max-w-3xl mx-auto flex justify-center gap-2 mb-14 text-gray-300"></div>
 
-    function renderPagination() {
-      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
-      const container = document.getElementById('paginationControls')
+        <!-- Create Post Form -->
+        <section class="max-w-xl mx-auto px-4">
+            <h2 class="text-xl font-semibold mb-6 text-teal-300">Create a New Post</h2>
+            <form id="createPostForm" class="space-y-6 bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div>
+                    <label for="title" class="block mb-2 font-medium text-gray-300">Post Title</label>
+                    <input type="text" id="title" placeholder="Enter title..." required
+                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                </div>
+                <div>
+                    <label for="body" class="block mb-2 font-medium text-gray-300">Post Content</label>
+                    <textarea id="body" rows="5" placeholder="Write something..." required
+                        class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"></textarea>
+                </div>
+                <button type="submit"
+                    class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-md shadow-md transition">
+                    Publish Post
+                </button>
+            </form>
+        </section>
 
-      let buttonsHTML = `
+    </main>
+
+    <script>
+        const api = 'http://localhost:3000/api'
+        const POSTS_PER_PAGE = 5
+        let currentPage = 1
+        let allPosts = []
+
+        async function loadPosts() {
+            const res = await fetch(`${api}/posts`)
+            allPosts = await res.json()
+            renderPage(currentPage)
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+            const container = document.getElementById('paginationControls')
+
+            let buttonsHTML = `
         <button ${currentPage === 1 ? 'disabled' : ''}
           onclick="goToPage(${currentPage - 1})"
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >Prev</button>
       `
 
-      let startPage = Math.max(1, currentPage - 2)
-      let endPage = Math.min(totalPages, startPage + 4)
-      if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4)
+            let startPage = Math.max(1, currentPage - 2)
+            let endPage = Math.min(totalPages, startPage + 4)
+            if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4)
 
-      for (let i = startPage; i <= endPage; i++) {
-        buttonsHTML += `
+            for (let i = startPage; i <= endPage; i++) {
+                buttonsHTML += `
           <button
             onclick="goToPage(${i})"
             class="px-3 py-1 rounded transition ${currentPage === i ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}"
@@ -104,26 +98,26 @@
             ${i}
           </button>
         `
-      }
+            }
 
-      buttonsHTML += `
+            buttonsHTML += `
         <button ${currentPage === totalPages ? 'disabled' : ''}
           onclick="goToPage(${currentPage + 1})"
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >Next</button>
       `
 
-      container.innerHTML = buttonsHTML
-    }
+            container.innerHTML = buttonsHTML
+        }
 
-    function renderPage(page) {
-      currentPage = page
-      const start = (page - 1) * POSTS_PER_PAGE
-      const end = start + POSTS_PER_PAGE
-      const pagePosts = allPosts.slice(start, end)
+        function renderPage(page) {
+            currentPage = page
+            const start = (page - 1) * POSTS_PER_PAGE
+            const end = start + POSTS_PER_PAGE
+            const pagePosts = allPosts.slice(start, end)
 
-      const postsContainer = document.getElementById('posts')
-      postsContainer.innerHTML = pagePosts.map(post => `
+            const postsContainer = document.getElementById('posts')
+            postsContainer.innerHTML = pagePosts.map(post => `
         <article class="bg-gray-800 p-6 rounded-lg shadow-md">
           <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
           <p class="text-gray-300 mb-4">${post.body}</p>
@@ -131,17 +125,45 @@
         </article>
       `).join('')
 
-      renderPagination()
-    }
+            renderPagination()
+        }
 
-    function goToPage(page) {
-      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
-      if (page < 1 || page > totalPages) return
-      renderPage(page)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+        function goToPage(page) {
+            const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+            if (page < 1 || page > totalPages) return
+            renderPage(page)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
 
-    window.onload = loadPosts
-  </script>
+        window.onload = loadPosts
+    </script>
+
+    <footer class="bg-gray-800 text-gray-300 py-6 mt-12">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">🇺🇸</span>
+                <span id="datetime" class="text-gray-400"></span>
+            </div>
+            <div class="text-teal-400 font-semibold">🎗️ NICU Awareness</div>
+            <div class="text-center sm:text-right text-gray-400 italic">
+                Dedicated to my wife and family
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function updateDateTime() {
+            const now = new Date()
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            const date = now.toLocaleDateString(undefined, options)
+            document.getElementById('datetime').textContent = `${date} • ${time}`
+        }
+
+        updateDateTime()
+        setInterval(updateDateTime, 1000)
+    </script>
+
 </body>
+
 </html>

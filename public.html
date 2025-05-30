@@ -1,72 +1,103 @@
 <!DOCTYPE html>
 <html lang="en" class="bg-gray-900 text-white scroll-smooth">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Blog Feed</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="font-sans">
 
-  <!-- Navbar -->
-  <nav class="bg-gray-800 shadow-md">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-      <a href="index.html" class="text-lg font-semibold text-white">
-        Stacey & Jordan's Journey – A Thread
-      </a>
-      <div class="space-x-2">
-        <a href="client/login.html" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Login</a>
-      </div>
-    </div>
-  </nav>
+    <!-- Navbar -->
+    <nav class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="index.html" class="text-lg font-semibold text-white">
+                Stacey & Jordan's Journey – A Thread
+            </a>
+            <div class="space-x-2">
+                <a href="client/login.html"
+                    class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Login</a>
+            </div>
+        </div>
+    </nav>
 
-  <!-- Welcome Section -->
-  <section class="max-w-2xl mx-auto my-8 px-4 text-center">
-    <h2 class="text-2xl font-semibold text-teal-400 mb-4">Welcome to My Blog</h2>
-    <p class="text-gray-300 leading-relaxed">
-      Here I will post my most recent updates. Read my first post to understand our story and check back to follow our journey.
-      This blog is a space for emotional, spiritual, and therapeutic healing as my family and I walk a path we never expected.
-    </p>
-  </section>
+    <!-- Welcome Section -->
+    <section class="max-w-2xl mx-auto my-8 px-4 text-center">
+        <h2 class="text-2xl font-semibold text-teal-400 mb-4">Welcome to My Blog</h2>
+        <p class="text-gray-300 leading-relaxed">
+            Here I will post my most recent updates. Read my first post to understand our story and check back to follow
+            our journey.
+            This blog is a space for emotional, spiritual, and therapeutic healing as my family and I walk a path we
+            never expected.
+        </p>
+    </section>
 
-  <!-- Posts Container -->
-  <main class="max-w-3xl mx-auto px-4">
-    <div id="postsContainer" class="space-y-6"></div>
+    <!-- Posts Container -->
+    <main class="max-w-3xl mx-auto px-4">
+        <div id="postsContainer" class="space-y-6"></div>
 
-    <!-- Pagination Controls -->
-    <div id="paginationControls" class="flex justify-center items-center space-x-4 mt-8 text-gray-300"></div>
-  </main>
+        <!-- Pagination Controls -->
+        <div id="paginationControls" class="flex justify-center items-center space-x-4 mt-8 text-gray-300"></div>
+    </main>
 
-  <script>
-    const api = 'http://localhost:3000/api'
-    const POSTS_PER_PAGE = 5
-    let currentPage = 1
-    let allPosts = []
+    <footer class="bg-gray-800 text-gray-300 py-6 mt-12">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <img src="https://flagcdn.com/us.svg" alt="US Flag" class="inline w-6 h-4" />
+                <span id="datetime" class="text-gray-400"></span>
+            </div>
+            <div class="text-teal-400 font-semibold">🎗️ NICU Awareness</div>
+            <div class="text-center sm:text-right text-gray-400 italic">
+                Dedicated to my wife and family
+            </div>
+        </div>
+    </footer>
 
-    async function loadPosts() {
-      // Fetch all posts once
-      const res = await fetch(`${api}/posts`)
-      allPosts = await res.json()
+    <script>
+        function updateDateTime() {
+            const now = new Date()
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            const date = now.toLocaleDateString(undefined, options)
+            document.getElementById('datetime').textContent = `${date} • ${time}`
+        }
 
-      renderPage(currentPage)
-    }
+        updateDateTime()
+        setInterval(updateDateTime, 1000)
+    </script>
 
-    async function renderPage(page) {
-      const start = (page - 1) * POSTS_PER_PAGE
-      const end = start + POSTS_PER_PAGE
-      const pagePosts = allPosts.slice(start, end)
+    <script>
+        const api = 'http://localhost:3000/api'
+        const POSTS_PER_PAGE = 5
+        let currentPage = 1
+        let allPosts = []
 
-      const postsHTML = await Promise.all(pagePosts.map(async post => {
-        const commentsRes = await fetch(`${api}/comments/${post._id}`)
-        const comments = await commentsRes.json()
+        async function loadPosts() {
+            // Fetch all posts once
+            const res = await fetch(`${api}/posts`)
+            allPosts = await res.json()
 
-        const commentsHTML = comments.map(c => `
+            renderPage(currentPage)
+        }
+
+        async function renderPage(page) {
+            const start = (page - 1) * POSTS_PER_PAGE
+            const end = start + POSTS_PER_PAGE
+            const pagePosts = allPosts.slice(start, end)
+
+            const postsHTML = await Promise.all(pagePosts.map(async post => {
+                const commentsRes = await fetch(`${api}/comments/${post._id}`)
+                const comments = await commentsRes.json()
+
+                const commentsHTML = comments.map(c => `
           <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
             <strong class="text-teal-300">${c.username || 'Anon'}:</strong> ${c.text}
           </div>
         `).join('')
 
-        return `
+                return `
           <div class="bg-gray-800 p-5 rounded-lg shadow-md">
             <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
             <p class="text-gray-300 mb-2">${post.body}</p>
@@ -81,17 +112,17 @@
             </form>
           </div>
         `
-      }))
+            }))
 
-      document.getElementById('postsContainer').innerHTML = postsHTML.join('')
-      renderPagination()
-    }
+            document.getElementById('postsContainer').innerHTML = postsHTML.join('')
+            renderPagination()
+        }
 
-    function renderPagination() {
-      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
-      const container = document.getElementById('paginationControls')
+        function renderPagination() {
+            const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+            const container = document.getElementById('paginationControls')
 
-      let buttonsHTML = `
+            let buttonsHTML = `
         <button ${currentPage === 1 ? 'disabled' : ''} 
           onclick="goToPage(${currentPage - 1})" 
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
@@ -99,9 +130,9 @@
         </button>
       `
 
-      // Optional: Show page numbers (1 2 3 ...)
-      for (let i = 1; i <= totalPages; i++) {
-        buttonsHTML += `
+            // Optional: Show page numbers (1 2 3 ...)
+            for (let i = 1; i <= totalPages; i++) {
+                buttonsHTML += `
           <button
             onclick="goToPage(${i})"
             class="px-3 py-1 rounded transition ${currentPage === i ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}"
@@ -109,9 +140,9 @@
             ${i}
           </button>
         `
-      }
+            }
 
-      buttonsHTML += `
+            buttonsHTML += `
         <button ${currentPage === totalPages ? 'disabled' : ''} 
           onclick="goToPage(${currentPage + 1})" 
           class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
@@ -119,35 +150,36 @@
         </button>
       `
 
-      container.innerHTML = buttonsHTML
-    }
+            container.innerHTML = buttonsHTML
+        }
 
-    function goToPage(page) {
-      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
-      if (page < 1 || page > totalPages) return
-      currentPage = page
-      renderPage(currentPage)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+        function goToPage(page) {
+            const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+            if (page < 1 || page > totalPages) return
+            currentPage = page
+            renderPage(currentPage)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
 
-    async function postComment(postId, form) {
-      const data = {
-        username: form.username.value,
-        text: form.text.value
-      }
+        async function postComment(postId, form) {
+            const data = {
+                username: form.username.value,
+                text: form.text.value
+            }
 
-      await fetch(`${api}/comments/${postId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
+            await fetch(`${api}/comments/${postId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
 
-      form.text.value = ''
-      loadPosts()  // reload all posts & comments — you can optimize this later if needed
-      return false
-    }
+            form.text.value = ''
+            loadPosts()  // reload all posts & comments — you can optimize this later if needed
+            return false
+        }
 
-    loadPosts()
-  </script>
+        loadPosts()
+    </script>
 </body>
+
 </html>
