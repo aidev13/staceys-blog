@@ -9,11 +9,15 @@
 <body class="min-h-screen flex flex-col">
 
   <!-- Navbar -->
-  <nav class="bg-gray-800 shadow-md mb-8">
-    <div class="container mx-auto px-6 py-5">
-      <a href="#" class="text-2xl font-extrabold flex items-center gap-3 text-teal-400 hover:text-teal-500 transition">
-        <span>📝</span> My Blog
+  <nav class="bg-gray-800 shadow-md">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="index.html" class="text-lg font-semibold text-white">
+        Stacey & Jordan's Journey – A Thread
       </a>
+      <div class="space-x-2">
+        <a href="../public.html" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Common room</a>
+        <a href="#" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Log out</a>
+      </div>
     </div>
   </nav>
 
@@ -25,6 +29,9 @@
       <h2 class="text-3xl font-bold mb-8 border-b border-gray-700 pb-2 text-teal-400">Latest Posts</h2>
       <div id="posts" class="space-y-8"></div>
     </section>
+
+    <!-- Pagination Controls -->
+    <div id="paginationControls" class="max-w-3xl mx-auto flex justify-center gap-2 mb-14 text-gray-300"></div>
 
     <!-- Create Post Form -->
     <section class="max-w-xl mx-auto px-4">
@@ -61,6 +68,80 @@
 
   </main>
 
-  <script src="script.js"></script>
+  <script>
+    const api = 'http://localhost:3000/api'
+    const POSTS_PER_PAGE = 5
+    let currentPage = 1
+    let allPosts = []
+
+    async function loadPosts() {
+      const res = await fetch(`${api}/posts`)
+      allPosts = await res.json()
+      renderPage(currentPage)
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+      const container = document.getElementById('paginationControls')
+
+      let buttonsHTML = `
+        <button ${currentPage === 1 ? 'disabled' : ''}
+          onclick="goToPage(${currentPage - 1})"
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >Prev</button>
+      `
+
+      let startPage = Math.max(1, currentPage - 2)
+      let endPage = Math.min(totalPages, startPage + 4)
+      if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4)
+
+      for (let i = startPage; i <= endPage; i++) {
+        buttonsHTML += `
+          <button
+            onclick="goToPage(${i})"
+            class="px-3 py-1 rounded transition ${currentPage === i ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}"
+          >
+            ${i}
+          </button>
+        `
+      }
+
+      buttonsHTML += `
+        <button ${currentPage === totalPages ? 'disabled' : ''}
+          onclick="goToPage(${currentPage + 1})"
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >Next</button>
+      `
+
+      container.innerHTML = buttonsHTML
+    }
+
+    function renderPage(page) {
+      currentPage = page
+      const start = (page - 1) * POSTS_PER_PAGE
+      const end = start + POSTS_PER_PAGE
+      const pagePosts = allPosts.slice(start, end)
+
+      const postsContainer = document.getElementById('posts')
+      postsContainer.innerHTML = pagePosts.map(post => `
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md">
+          <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
+          <p class="text-gray-300 mb-4">${post.body}</p>
+          <p class="text-xs text-gray-500">by ${post.author || 'Anon'} on ${new Date(post.createdAt).toLocaleDateString()}</p>
+        </article>
+      `).join('')
+
+      renderPagination()
+    }
+
+    function goToPage(page) {
+      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+      if (page < 1 || page > totalPages) return
+      renderPage(page)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    window.onload = loadPosts
+  </script>
 </body>
 </html>
