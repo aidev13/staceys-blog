@@ -9,18 +9,41 @@
 </head>
 
 <body class="font-sans">
-    <!-- Navbar -->
-    <nav class="bg-gray-800 shadow-md">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+    <nav class="bg-gray-800 shadow-md relative">
+        <div class="container mx-auto px-4 py-3 flex items-center">
+            <!-- Logo on the left -->
             <a href="index.html" class="text-lg font-semibold text-white">
                 Stacey & Jordan's Journey – A Thread
             </a>
-            <div class="space-x-2">
-                <a href="client/login.html"
-                    class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Login</a>
-            </div>
+
+            <!-- Spacer -->
+            <div class="flex-grow"></div>
+
+            <!-- Hamburger Icon -->
+            <button id="navToggle" class="text-white focus:outline-none z-20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Nav Links container positioned absolutely on the right -->
+        <div id="navMenu"
+            class="hidden absolute top-full right-0 mt-2 mr-4 bg-gray-800 rounded shadow-lg flex space-x-4 text-white px-4 py-2">
+            <a href="/client/login.html"
+                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
+                Login
+            </a>
+            <a href="./client/index.html"
+                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
+                Profile
+            </a>
+            <!-- Add more links here -->
         </div>
     </nav>
+
+
 
     <!-- Welcome Section -->
     <section class="max-w-2xl mx-auto my-8 px-4 text-center">
@@ -62,6 +85,13 @@
     </footer>
 
     <script src="./public_script.js"></script>
+    <script>
+        if (localStorage.setItem("IsLoggedIn") === false) {
+            alert("You do not have the rights to be here...")
+            window.location = './public.html'
+        }
+
+    </script>
 </body>
 
 </html>

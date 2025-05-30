@@ -1,3 +1,19 @@
+  // Mobile menu toggle
+const navToggle = document.getElementById('navToggle');
+const navMenu = document.getElementById('navMenu');
+
+navToggle.addEventListener('click', () => {
+  if (navMenu.classList.contains('hidden')) {
+    navMenu.classList.remove('hidden');
+    navMenu.classList.add('flex');
+  } else {
+    navMenu.classList.add('hidden');
+    navMenu.classList.remove('flex');
+  }
+});
+
+
+
 function updateDateTime() {
   const now = new Date();
   const options = {

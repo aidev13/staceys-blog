@@ -12,6 +12,16 @@ const postForm = document.getElementById("createPostForm");
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
 
+// Mobile menu toggle
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("navToggle");
+  const menu = document.getElementById("navMenu");
+
+  toggleBtn.addEventListener("click", () => {
+    menu.classList.toggle("hidden");
+  });
+});
+
 // REGISTER
 const registerForm = document.getElementById("registerForm");
 if (registerForm) {
@@ -47,6 +57,7 @@ if (loginForm) {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem("token", data.token);
+      localStorage.setItem("IsLoggedIn", true );
       window.location.href = "index.html";
     } else {
       alert(data.message);
@@ -187,12 +198,12 @@ function addToggleListeners() {
   });
 }
 
-// Render pagination controls
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   let buttonsHTML = `
-    <button ${currentPage === 1 ? "disabled" : ""}
-      onclick="goToPage(${currentPage - 1})"
+    <button data-page="${currentPage - 1}" ${
+    currentPage === 1 ? "disabled" : ""
+  }
       class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
       Prev
     </button>
@@ -200,7 +211,7 @@ function renderPagination() {
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-      <button onclick="goToPage(${i})"
+      <button data-page="${i}"
         class="px-3 py-1 rounded transition ${
           currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
         }">
@@ -210,14 +221,25 @@ function renderPagination() {
   }
 
   buttonsHTML += `
-    <button ${currentPage === totalPages ? "disabled" : ""}
-      onclick="goToPage(${currentPage + 1})"
+    <button data-page="${currentPage + 1}" ${
+    currentPage === totalPages ? "disabled" : ""
+  }
       class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
       Next
     </button>
   `;
 
   paginationDiv.innerHTML = buttonsHTML;
+
+  paginationDiv.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+
+    const page = parseInt(btn.getAttribute("data-page"));
+    if (!isNaN(page)) {
+      goToPage(page);
+    }
+  });
 }
 
 // Page navigation
