@@ -1,52 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bg-gray-900 text-white scroll-smooth">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Blog Feed</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="container my-4">
-  <h1 class="mb-4">🌍 Public Blog</h1>
+<body class="font-sans">
 
-  <div id="postsContainer"></div>
+  <!-- Navbar -->
+  <nav class="bg-gray-800 shadow-md">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="index.html" class="text-lg font-semibold text-white">
+        Stacey & Jordan's Journey – A Thread
+      </a>
+      <div class="space-x-2">
+        <a href="login.html" class="px-3 py-1 text-sm rounded border border-gray-400 text-white hover:bg-gray-700 transition">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Welcome Section -->
+  <section class="max-w-2xl mx-auto my-8 px-4 text-center">
+    <h2 class="text-2xl font-semibold text-teal-400 mb-4">Welcome to My Blog</h2>
+    <p class="text-gray-300 leading-relaxed">
+      Here I will post my most recent updates. Read my first post to understand our story and check back to follow our journey.
+      This blog is a space for emotional, spiritual, and therapeutic healing as my family and I walk a path we never expected.
+    </p>
+  </section>
+
+  <!-- Posts Container -->
+  <main class="max-w-3xl mx-auto px-4">
+    <div id="postsContainer" class="space-y-6"></div>
+
+    <!-- Pagination Controls -->
+    <div id="paginationControls" class="flex justify-center items-center space-x-4 mt-8 text-gray-300"></div>
+  </main>
 
   <script>
     const api = 'http://localhost:3000/api'
+    const POSTS_PER_PAGE = 5
+    let currentPage = 1
+    let allPosts = []
 
     async function loadPosts() {
+      // Fetch all posts once
       const res = await fetch(`${api}/posts`)
-      const posts = await res.json()
+      allPosts = await res.json()
 
-      const postsHTML = await Promise.all(posts.map(async post => {
+      renderPage(currentPage)
+    }
+
+    async function renderPage(page) {
+      const start = (page - 1) * POSTS_PER_PAGE
+      const end = start + POSTS_PER_PAGE
+      const pagePosts = allPosts.slice(start, end)
+
+      const postsHTML = await Promise.all(pagePosts.map(async post => {
         const commentsRes = await fetch(`${api}/comments/${post._id}`)
         const comments = await commentsRes.json()
 
         const commentsHTML = comments.map(c => `
-          <div class="border-start ps-2 mb-2">
-            <strong>${c.username || 'Anon'}:</strong> ${c.text}
+          <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
+            <strong class="text-teal-300">${c.username || 'Anon'}:</strong> ${c.text}
           </div>
         `).join('')
 
         return `
-          <div class="card mb-4">
-            <div class="card-body">
-              <h3>${post.title}</h3>
-              <p>${post.body}</p>
-              <small class="text-muted">by ${post.author || 'Anon'} on ${new Date(post.createdAt).toLocaleDateString()}</small>
-              <hr/>
-              <h5>Comments</h5>
-              ${commentsHTML || '<p>No comments yet.</p>'}
-              <form onsubmit="return postComment('${post._id}', this)">
-                <input name="username" class="form-control my-1" placeholder="Your name" />
-                <textarea name="text" class="form-control my-1" placeholder="Write a comment..." required></textarea>
-                <button class="btn btn-sm btn-secondary">Post Comment</button>
-              </form>
-            </div>
+          <div class="bg-gray-800 p-5 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold text-teal-400 mb-2">${post.title}</h3>
+            <p class="text-gray-300 mb-2">${post.body}</p>
+            <p class="text-xs text-gray-500 mb-3">by ${post.author || 'Anon'} on ${new Date(post.createdAt).toLocaleDateString()}</p>
+            <hr class="border-gray-600 mb-3" />
+            <h4 class="text-sm text-teal-300 mb-2">Comments</h4>
+            ${commentsHTML || '<p class="text-gray-500 text-sm">No comments yet.</p>'}
+            <form onsubmit="return postComment('${post._id}', this)" class="mt-4 space-y-2">
+              <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
+              <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
+              <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
+            </form>
           </div>
         `
       }))
 
       document.getElementById('postsContainer').innerHTML = postsHTML.join('')
+      renderPagination()
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+      const container = document.getElementById('paginationControls')
+
+      let buttonsHTML = `
+        <button ${currentPage === 1 ? 'disabled' : ''} 
+          onclick="goToPage(${currentPage - 1})" 
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+          Prev
+        </button>
+      `
+
+      // Optional: Show page numbers (1 2 3 ...)
+      for (let i = 1; i <= totalPages; i++) {
+        buttonsHTML += `
+          <button
+            onclick="goToPage(${i})"
+            class="px-3 py-1 rounded transition ${currentPage === i ? 'bg-teal-600' : 'bg-gray-700 hover:bg-gray-600'}"
+          >
+            ${i}
+          </button>
+        `
+      }
+
+      buttonsHTML += `
+        <button ${currentPage === totalPages ? 'disabled' : ''} 
+          onclick="goToPage(${currentPage + 1})" 
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+          Next
+        </button>
+      `
+
+      container.innerHTML = buttonsHTML
+    }
+
+    function goToPage(page) {
+      const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE)
+      if (page < 1 || page > totalPages) return
+      currentPage = page
+      renderPage(currentPage)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     async function postComment(postId, form) {
@@ -62,7 +143,7 @@
       })
 
       form.text.value = ''
-      loadPosts()
+      loadPosts()  // reload all posts & comments — you can optimize this later if needed
       return false
     }
 
