@@ -57,7 +57,7 @@ if (loginForm) {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem("token", data.token);
-      localStorage.setItem("IsLoggedIn", true );
+      localStorage.setItem("IsLoggedIn", true);
       window.location.href = "index.html";
     } else {
       alert(data.message);
@@ -117,7 +117,20 @@ async function loadCommentCounts(postIds) {
   }
 }
 
-// Render a single page of posts
+// Fetch comments for a single post
+async function fetchComments(postId) {
+  if (!isValidObjectId(postId)) return [];
+  try {
+    const res = await fetch(`${api}/comments/${postId}`);
+    if (!res.ok) throw new Error("Failed to fetch comments");
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching comments:", err);
+    return [];
+  }
+}
+
+// Render a single page of posts with "Show Comments" button and comment container
 async function renderPage(page) {
   currentPage = page;
   const start = (page - 1) * POSTS_PER_PAGE;
@@ -137,10 +150,10 @@ async function renderPage(page) {
       const count = commentCounts[post._id] || 0;
 
       return `
-        <article class="bg-gray-800 p-6 rounded-lg shadow-md">
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(
             post.title
-          }</h3>
+          )}</h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
             post.body
           )}" data-index="${index}">
@@ -152,22 +165,29 @@ async function renderPage(page) {
               : ""
           }
           <p class="text-xs text-gray-500">
-            by ${post.author || "Anon"} on ${new Date(
+            by ${escapeHtml(post.author || "Anon")} on ${new Date(
         post.createdAt
       ).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString(
         [],
         { hour: "2-digit", minute: "2-digit" }
       )}
           </p>
-          <p class="text-sm text-purple-400 mt-2">💬 ${count} comment${
+          <p class="text-sm text-purple-400 mt-2 mb-2">💬 ${count} comment${
         count !== 1 ? "s" : ""
       }</p>
+          <button class="show-comments-btn text-sm text-blue-400 hover:underline mb-4" data-postid="${
+            post._id
+          }">Show Comments</button>
+          <div class="comments-container hidden" id="comments-for-${
+            post._id
+          }"></div>
         </article>
       `;
     })
     .join("");
 
   addToggleListeners();
+  addShowCommentsListeners();
   renderPagination();
 }
 
@@ -177,9 +197,7 @@ function addToggleListeners() {
   buttons.forEach((button) => {
     button.addEventListener("click", (e) => {
       const idx = e.target.getAttribute("data-index");
-      const postBody = document.querySelector(
-        `.post-body[data-index="${idx}"]`
-      );
+      const postBody = document.querySelector(`.post-body[data-index="${idx}"]`);
       const fullText = postBody.getAttribute("data-full");
 
       if (e.target.textContent === "Read more") {
@@ -194,6 +212,56 @@ function addToggleListeners() {
         postBody.textContent = previewText;
         e.target.textContent = "Read more";
       }
+    });
+  });
+}
+
+// Add click listeners to Show Comments buttons
+function addShowCommentsListeners() {
+  const buttons = document.querySelectorAll(".show-comments-btn");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const postId = e.target.getAttribute("data-postid");
+      const container = document.getElementById(`comments-for-${postId}`);
+
+      if (!container) return;
+
+      if (!container.classList.contains("hidden")) {
+        // Hide comments if already shown
+        container.classList.add("hidden");
+        e.target.textContent = "Show Comments";
+        return;
+      }
+
+      // Show loading state
+      container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
+      container.classList.remove("hidden");
+      e.target.textContent = "Hide Comments";
+
+      // Fetch comments
+      const comments = await fetchComments(postId);
+
+      if (comments.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
+        return;
+      }
+
+      // Render comments list
+      container.innerHTML = comments
+        .map(
+          (c) => `
+        <div class="comment border-t border-gray-600 py-2">
+          <p class="text-sm text-purple-300 font-semibold">${escapeHtml(
+            c.username
+          )}</p>
+          <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
+          <p class="text-xs text-gray-500">${new Date(
+            c.createdAt
+          ).toLocaleString()}</p>
+        </div>
+      `
+        )
+        .join("");
     });
   });
 }
