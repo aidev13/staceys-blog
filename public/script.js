@@ -256,8 +256,8 @@ async function showCommentsForPost(postId, container) {
     ? comments
         .map((c) => {
           const { displayName } = formatCommentDisplay(c);
-          // Add delete button if user is logged in and it's their comment
-          const deleteButton = token && c.userId === getCurrentUserId() 
+          // Add delete button if user is logged in - ANY logged in user can delete ANY comment
+          const deleteButton = token
             ? `<button class="delete-comment-btn text-xs text-red-400 hover:text-red-300 ml-2" data-commentid="${c._id}" data-postid="${postId}">Delete</button>`
             : '';
           
@@ -280,8 +280,8 @@ async function showCommentsForPost(postId, container) {
   const formHTML = token
     ? `
     <form class="comment-form mt-4">
-      <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
+      <textarea class="comment-text w-full px-3 py-3 text-sm rounded bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-600" rows="2" placeholder="Write a comment..."></textarea>
+      <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 text-sm rounded shadow-md transition-colors duration-200">Post Comment</button>
     </form>
   `
     : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
@@ -350,10 +350,10 @@ async function renderPage(page) {
         : '';
 
       return `
-        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'ring-2 ring-blue-400' : ''}">
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'border-2 border-blue-400' : ''}">
           <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
             ${escapeHtml(post.title)}${notificationBadge}
-            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2">(New public comment!)</span>' : ''}
+            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2">New Comment</span>' : ''}
             ${editButton}
           </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
@@ -503,7 +503,7 @@ function addToggleListeners() {
   });
 }
 
-// Show Comments (fixed to clear notifications properly)
+// Show Comments (fixed to prevent random closing and properly handle notifications)
 function addShowCommentsListeners() {
   const buttons = document.querySelectorAll(".show-comments-btn");
   buttons.forEach((btn) => {
@@ -518,28 +518,32 @@ function addShowCommentsListeners() {
         return;
       }
 
+      // Check if this post has new comment notifications
+      const hadNewComments = newCommentNotifications.has(postId);
+      
       // Clear notification for this post when viewing comments
-      if (newCommentNotifications.has(postId)) {
+      if (hadNewComments) {
         newCommentNotifications.delete(postId);
         lastCheckedComments[postId] = Date.now();
         localStorage.setItem('lastCheckedComments', JSON.stringify(lastCheckedComments));
         
-        // Re-render the current page to remove notification styling
-        await renderPage(currentPage);
-        
-        // After re-render, we need to re-find the container and show comments
-        const updatedContainer = document.getElementById(`comments-for-${postId}`);
-        const updatedBtn = document.querySelector(`button[data-postid="${postId}"]`);
-        
-        if (updatedContainer && updatedBtn) {
-          updatedContainer.classList.remove("hidden");
-          updatedBtn.textContent = "Hide Comments";
-          await showCommentsForPost(postId, updatedContainer);
+        // Update just this post's styling without full re-render
+        const postElement = btn.closest('article');
+        if (postElement) {
+          postElement.classList.remove('border-2', 'border-blue-400');
+          
+          // Remove notification badge and text
+          const title = postElement.querySelector('h3');
+          if (title) {
+            const badge = title.querySelector('.bg-red-500');
+            const notificationText = title.querySelector('.text-blue-400');
+            if (badge) badge.remove();
+            if (notificationText) notificationText.remove();
+          }
         }
-        return;
       }
 
-      // Normal flow for posts without notifications
+      // Show comments
       container.classList.remove("hidden");
       e.target.textContent = "Hide Comments";
       await showCommentsForPost(postId, container);
@@ -583,14 +587,18 @@ function addCommentListener(container, postId) {
         "afterbegin",
         `
         <div class="comment border-t border-gray-600 py-2">
-          <p class="text-sm text-purple-300 font-semibold">
+          <p class="text-sm text-purple-300 font-semibold flex items-center">
             You
+            <button class="delete-comment-btn text-xs text-red-400 hover:text-red-300 ml-2" data-commentid="temp-${Date.now()}" data-postid="${postId}">Delete</button>
           </p>
           <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
           <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
         </div>
         `
       );
+      
+      // Add delete listener for the new comment
+      addDeleteCommentListeners(container);
     } catch (err) {
       alert("Error posting comment: " + err.message);
     }
