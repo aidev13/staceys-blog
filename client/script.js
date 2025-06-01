@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   toggleBtn.addEventListener("click", () => {
     menu.classList.toggle("hidden");
+    toggleBtn.setAttribute("aria-expanded", !menu.classList.contains("hidden"));
   });
 });
 
@@ -65,19 +66,19 @@ if (loginForm) {
   });
 }
 
-// Load all posts from API
+// Load all posts
 async function loadPosts() {
   try {
     const res = await fetch(`${api}/posts`);
     if (!res.ok) throw new Error("Failed to fetch posts");
-    allPosts = await res.json();
+    allPosts = (await res.json()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     renderPage(currentPage);
   } catch (err) {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
   }
 }
 
-// Escape HTML to prevent XSS
+// Escape HTML
 function escapeHtml(text) {
   return text
     .replace(/&/g, "&amp;")
@@ -87,24 +88,19 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-// Validate MongoDB ObjectId (24 hex chars)
+// ObjectId validation
 function isValidObjectId(id) {
   return /^[a-f\d]{24}$/i.test(id);
 }
 
-// Load comment counts only for valid MongoDB ObjectIds
+// Load comment counts
 async function loadCommentCounts(postIds) {
-  // Filter valid IDs
   const validIds = postIds.filter(isValidObjectId);
   if (validIds.length === 0) return {};
 
   try {
-    const res = await fetch(
-      `${api}/comments/counts?postIds=${validIds.join(",")}`
-    );
-    if (!res.ok)
-      throw new Error(`Failed to load comment counts: ${res.statusText}`);
-
+    const res = await fetch(`${api}/comments/counts?postIds=${validIds.join(",")}`);
+    if (!res.ok) throw new Error(`Failed to load comment counts: ${res.statusText}`);
     const data = await res.json();
     const counts = {};
     data.forEach(({ _id, count }) => {
@@ -113,11 +109,11 @@ async function loadCommentCounts(postIds) {
     return counts;
   } catch (err) {
     console.error(err);
-    return {}; // fail gracefully
+    return {};
   }
 }
 
-// Fetch comments for a single post
+// Fetch comments
 async function fetchComments(postId) {
   if (!isValidObjectId(postId)) return [];
   try {
@@ -130,7 +126,7 @@ async function fetchComments(postId) {
   }
 }
 
-// Render a single page of posts with "Show Comments" button and comment container
+// Render posts
 async function renderPage(page) {
   currentPage = page;
   const start = (page - 1) * POSTS_PER_PAGE;
@@ -143,44 +139,22 @@ async function renderPage(page) {
     .map((post, index) => {
       const previewLimit = 150;
       const isLong = post.body.length > previewLimit;
-      const previewText = isLong
-        ? post.body.slice(0, previewLimit) + "..."
-        : post.body;
-
+      const previewText = isLong ? post.body.slice(0, previewLimit) + "..." : post.body;
       const count = commentCounts[post._id] || 0;
 
       return `
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6">
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(
-            post.title
-          )}</h3>
-          <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
-            post.body
-          )}" data-index="${index}">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(post.title)}</h3>
+          <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(post.body)}" data-index="${index}">
             ${escapeHtml(previewText)}
           </p>
-          ${
-            isLong
-              ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
-              : ""
-          }
+          ${isLong ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>` : ""}
           <p class="text-xs text-gray-500">
-            by ${escapeHtml(post.author || "Anon")} on ${new Date(
-        post.createdAt
-      ).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString(
-        [],
-        { hour: "2-digit", minute: "2-digit" }
-      )}
+            by ${escapeHtml(post.author || "Anon")} on ${new Date(post.createdAt).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
-          <p class="text-sm text-purple-400 mt-2 mb-2">💬 ${count} comment${
-        count !== 1 ? "s" : ""
-      }</p>
-          <button class="show-comments-btn text-sm text-blue-400 hover:underline mb-4" data-postid="${
-            post._id
-          }">Show Comments</button>
-          <div class="comments-container hidden" id="comments-for-${
-            post._id
-          }"></div>
+          <p class="text-sm text-purple-400 mt-2 mb-2">💬 ${count} comment${count !== 1 ? "s" : ""}</p>
+          <button class="show-comments-btn text-sm text-blue-400 hover:underline mb-4" data-postid="${post._id}">Show Comments</button>
+          <div class="comments-container hidden" id="comments-for-${post._id}"></div>
         </article>
       `;
     })
@@ -191,7 +165,7 @@ async function renderPage(page) {
   renderPagination();
 }
 
-// Toggle "Read more" / "Show less"
+// Toggle Read More
 function addToggleListeners() {
   const buttons = document.querySelectorAll(".toggle-btn");
   buttons.forEach((button) => {
@@ -205,10 +179,7 @@ function addToggleListeners() {
         e.target.textContent = "Show less";
       } else {
         const previewLimit = 150;
-        const previewText =
-          fullText.length > previewLimit
-            ? fullText.slice(0, previewLimit) + "..."
-            : fullText;
+        const previewText = fullText.length > previewLimit ? fullText.slice(0, previewLimit) + "..." : fullText;
         postBody.textContent = previewText;
         e.target.textContent = "Read more";
       }
@@ -216,101 +187,115 @@ function addToggleListeners() {
   });
 }
 
-// Add click listeners to Show Comments buttons
+// Show Comments
 function addShowCommentsListeners() {
   const buttons = document.querySelectorAll(".show-comments-btn");
   buttons.forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const postId = e.target.getAttribute("data-postid");
       const container = document.getElementById(`comments-for-${postId}`);
-
       if (!container) return;
 
       if (!container.classList.contains("hidden")) {
-        // Hide comments if already shown
         container.classList.add("hidden");
         e.target.textContent = "Show Comments";
         return;
       }
 
-      // Show loading state
       container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
       container.classList.remove("hidden");
       e.target.textContent = "Hide Comments";
 
-      // Fetch comments
       const comments = await fetchComments(postId);
+      const commentsHTML = comments.length
+        ? comments.map((c) => `
+            <div class="comment border-t border-gray-600 py-2">
+              <p class="text-sm text-purple-300 font-semibold">${escapeHtml(c.username)}</p>
+              <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
+              <p class="text-xs text-gray-500">${new Date(c.createdAt).toLocaleString()}</p>
+            </div>
+          `).join("")
+        : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
 
-      if (comments.length === 0) {
-        container.innerHTML = `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
-        return;
-      }
-
-      // Render comments list
-      container.innerHTML = comments
-        .map(
-          (c) => `
-        <div class="comment border-t border-gray-600 py-2">
-          <p class="text-sm text-purple-300 font-semibold">${escapeHtml(
-            c.username
-          )}</p>
-          <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
-          <p class="text-xs text-gray-500">${new Date(
-            c.createdAt
-          ).toLocaleString()}</p>
-        </div>
+      const formHTML = token
+        ? `
+        <form class="comment-form mt-4">
+          <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
+        </form>
       `
-        )
-        .join("");
+        : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
+
+      container.innerHTML = commentsHTML + formHTML;
+
+      if (token) addCommentListener(container, postId);
     });
   });
 }
 
-function renderPagination() {
-  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
-  let buttonsHTML = `
-    <button data-page="${currentPage - 1}" ${
-    currentPage === 1 ? "disabled" : ""
-  }
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-      Prev
-    </button>
-  `;
+// Submit comment
+function addCommentListener(container, postId) {
+  const form = container.querySelector(".comment-form");
+  const textarea = form.querySelector(".comment-text");
 
-  for (let i = 1; i <= totalPages; i++) {
-    buttonsHTML += `
-      <button data-page="${i}"
-        class="px-3 py-1 rounded transition ${
-          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
-        }">
-        ${i}
-      </button>
-    `;
-  }
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = textarea.value.trim();
+    if (!text) return;
 
-  buttonsHTML += `
-    <button data-page="${currentPage + 1}" ${
-    currentPage === totalPages ? "disabled" : ""
-  }
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-      Next
-    </button>
-  `;
+    try {
+      const res = await fetch(`${api}/comments/${postId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
 
-  paginationDiv.innerHTML = buttonsHTML;
-
-  paginationDiv.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-page]");
-    if (!btn || btn.disabled) return;
-
-    const page = parseInt(btn.getAttribute("data-page"));
-    if (!isNaN(page)) {
-      goToPage(page);
+      if (!res.ok) throw new Error("Failed to post comment");
+      textarea.value = "";
+      form.previousElementSibling.insertAdjacentHTML("beforebegin", `
+        <div class="comment border-t border-gray-600 py-2">
+          <p class="text-sm text-purple-300 font-semibold">You</p>
+          <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
+          <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
+        </div>
+      `);
+    } catch (err) {
+      alert(err.message);
     }
   });
 }
 
-// Page navigation
+// Pagination
+function renderPagination() {
+  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+  let buttonsHTML = `
+    <button data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Prev</button>
+  `;
+
+  for (let i = 1; i <= totalPages; i++) {
+    buttonsHTML += `
+      <button data-page="${i}" class="px-3 py-1 rounded transition ${currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"}">${i}</button>
+    `;
+  }
+
+  buttonsHTML += `
+    <button data-page="${currentPage + 1}" ${currentPage === totalPages ? "disabled" : ""} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+  `;
+
+  paginationDiv.innerHTML = buttonsHTML;
+
+  paginationDiv.onclick = (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    const page = parseInt(btn.getAttribute("data-page"));
+    if (!isNaN(page)) goToPage(page);
+  };
+}
+
+// Page switch
 function goToPage(page) {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   if (page < 1 || page > totalPages) return;
@@ -319,7 +304,7 @@ function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Create a new post
+// Create a post
 if (postForm) {
   postForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -372,5 +357,4 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-// Initial load
 window.addEventListener("DOMContentLoaded", loadPosts);

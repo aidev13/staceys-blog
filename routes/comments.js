@@ -1,33 +1,30 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import Comment from '../models/Comment.js'
+import { verifyToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
+// GET comment counts for multiple posts
 router.get('/counts', async (req, res) => {
   try {
-    const postIds = req.query.postIds?.split(',') || [];
-
-    // Validate ObjectId strings first
-    const validIds = postIds.filter(id => mongoose.Types.ObjectId.isValid(id));
-
-    // Convert valid IDs to ObjectId instances
-  const objectIds = validIds.map(id => new mongoose.Types.ObjectId(id));
-
+    const postIds = req.query.postIds?.split(',') || []
+    const validIds = postIds.filter(id => mongoose.Types.ObjectId.isValid(id))
+    const objectIds = validIds.map(id => new mongoose.Types.ObjectId(id))
 
     const counts = await Comment.aggregate([
       { $match: { postId: { $in: objectIds } } },
       { $group: { _id: '$postId', count: { $sum: 1 } } }
-    ]);
+    ])
 
-    res.json(counts);
+    res.json(counts)
   } catch (err) {
-    console.error('Error in /counts:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error in /counts:', err)
+    res.status(500).json({ error: 'Server error' })
   }
-});
+})
 
-// Get comments for a single post
+// GET all comments for a post
 router.get('/:postId', async (req, res) => {
   const { postId } = req.params
   if (!mongoose.Types.ObjectId.isValid(postId)) {
@@ -43,26 +40,55 @@ router.get('/:postId', async (req, res) => {
   }
 })
 
-// Add comment (no auth)
-router.post('/:postId', async (req, res) => {
+// POST a new comment
+router.post('/:postId', async (req, res, next) => {
   const { postId } = req.params
-  const { username, text } = req.body
+  const hasAuth = req.headers.authorization?.startsWith('Bearer ')
+
+  if (hasAuth) {
+    return verifyToken(req, res, () => handleCommentPost(req, res, postId, true))
+  } else {
+    return handleCommentPost(req, res, postId, false)
+  }
+})
+
+// Helper to handle comment posting
+async function handleCommentPost(req, res, postId, isDashboard) {
+  const { text, username } = req.body
+  const user = req.user
 
   if (!mongoose.Types.ObjectId.isValid(postId)) {
     return res.status(400).json({ error: 'Invalid postId' })
   }
-  if (!username || !text) {
-    return res.status(400).json({ error: 'Username and text are required' })
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' })
+  }
+
+  if (isDashboard) {
+    if (!user || !user.username) {
+      return res.status(401).json({ error: 'Unauthorized: username missing from token' })
+    }
+  } else {
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required for public comments' })
+    }
+  }
+
+  const commentData = {
+    postId,
+    text,
+    username: isDashboard ? user.username : username
   }
 
   try {
-    const newComment = new Comment({ postId, username, text })
+    const newComment = new Comment(commentData)
     const saved = await newComment.save()
     res.status(201).json(saved)
   } catch (err) {
     console.error('Error saving comment:', err)
     res.status(500).json({ error: 'Failed to save comment' })
   }
-})
+}
 
 export default router

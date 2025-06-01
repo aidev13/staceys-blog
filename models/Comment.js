@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const commentSchema = new mongoose.Schema({
   postId: {
@@ -6,12 +6,18 @@ const commentSchema = new mongoose.Schema({
     ref: 'Post',
     required: true
   },
-  username: String,
-  text: String,
+  username: {
+    type: String,
+    required: true // Enforces presence of username
+  },
+  text: {
+    type: String,
+    required: true // Ensure empty comments aren't stored
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
-})
+});
 
-export default mongoose.model('Comment', commentSchema)
+export default mongoose.model('Comment', commentSchema);
