@@ -313,7 +313,6 @@ function addCommentListener(container, postId) {
 }
 
 // Pagination controls
-// Replace the existing renderPagination function with this one
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   let buttonsHTML = `
@@ -348,10 +347,10 @@ function renderPagination() {
   paginationDiv.innerHTML = buttonsHTML;
 
   paginationDiv.querySelectorAll("button[data-page]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       const page = parseInt(btn.getAttribute("data-page"));
       if (!isNaN(page) && page >= 1 && page <= totalPages) {
-        renderPage(page);
+        await renderPage(page);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     });
