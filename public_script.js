@@ -229,6 +229,7 @@ async function postComment(postId, form, event) {
   const data = {
     username: form.username.value,
     text: form.text.value,
+    source: 'public' // Add source identifier for public comments
   };
 
   await fetch(`${api}/comments/${postId}`, {

@@ -5,6 +5,10 @@ let allPosts = [];
 
 const token = localStorage.getItem("token");
 
+// Notification system for new public comments
+let lastCheckedComments = JSON.parse(localStorage.getItem('lastCheckedComments') || '{}');
+let newCommentNotifications = new Set();
+
 // Elements
 const postsDiv = document.getElementById("posts");
 const paginationDiv = document.getElementById("paginationControls");
@@ -66,6 +70,36 @@ if (loginForm) {
   });
 }
 
+// Check for new public comments
+async function checkForNewPublicComments() {
+  if (!allPosts.length) return;
+  
+  try {
+    for (const post of allPosts) {
+      const comments = await fetchComments(post._id);
+      // Filter for public comments - either explicitly marked as public or not marked as dashboard
+      const publicComments = comments.filter(c => 
+        c.source === 'public' || (c.source !== 'dashboard' && c.source !== undefined) || !c.source
+      );
+      
+      if (publicComments.length > 0) {
+        const lastChecked = lastCheckedComments[post._id] || 0;
+        const newPublicComments = publicComments.filter(c => new Date(c.createdAt).getTime() > lastChecked);
+        
+        if (newPublicComments.length > 0) {
+          newCommentNotifications.add(post._id);
+          console.log(`New public comment detected for post ${post._id}:`, newPublicComments);
+        }
+      }
+    }
+    
+    // Re-render to show notifications
+    renderPage(currentPage);
+  } catch (err) {
+    console.error('Error checking for new comments:', err);
+  }
+}
+
 // Load all posts
 async function loadPosts() {
   try {
@@ -75,6 +109,12 @@ async function loadPosts() {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
     renderPage(currentPage);
+    
+    // Check for new public comments after loading posts
+    await checkForNewPublicComments();
+    
+    // Set up periodic checking every 30 seconds
+    setInterval(checkForNewPublicComments, 30000);
   } catch (err) {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
   }
@@ -118,17 +158,33 @@ async function loadCommentCounts(postIds) {
   }
 }
 
-// Fetch comments
+// Fetch comments (updated to show all comments including public ones)
 async function fetchComments(postId) {
   if (!isValidObjectId(postId)) return [];
   try {
     const res = await fetch(`${api}/comments/${postId}`);
     if (!res.ok) throw new Error("Failed to fetch comments");
-    return await res.json();
+    const comments = await res.json();
+    
+    // Sort comments by creation date (newest first) to show recent public comments
+    return comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } catch (err) {
     console.error("Error fetching comments:", err);
     return [];
   }
+}
+
+// Helper function to format display name
+function formatCommentDisplay(comment) {
+  let displayName;
+  
+  if (!comment.username || comment.username.trim() === '') {
+    displayName = 'Anonymous';
+  } else {
+    displayName = escapeHtml(comment.username);
+  }
+  
+  return { displayName, badgeHtml: '' };
 }
 
 // Render posts
@@ -148,12 +204,19 @@ async function renderPage(page) {
         ? post.body.slice(0, previewLimit) + "..."
         : post.body;
       const count = commentCounts[post._id] || 0;
+      
+      // Check if this post has new public comment notifications
+      const hasNewComments = newCommentNotifications.has(post._id);
+      const notificationBadge = hasNewComments 
+        ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>' 
+        : '';
 
       return `
-        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6">
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(
-            post.title
-          )}</h3>
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'ring-2 ring-blue-400' : ''}">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
+            ${escapeHtml(post.title)}${notificationBadge}
+            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2">(New public comment!)</span>' : ''}
+          </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
             post.body
           )}" data-index="${index}">
@@ -218,7 +281,7 @@ function addToggleListeners() {
   });
 }
 
-// Show Comments
+// Show Comments (fixed to clear notifications properly)
 function addShowCommentsListeners() {
   const buttons = document.querySelectorAll(".show-comments-btn");
   buttons.forEach((btn) => {
@@ -233,6 +296,61 @@ function addShowCommentsListeners() {
         return;
       }
 
+      // Clear notification for this post when viewing comments
+      if (newCommentNotifications.has(postId)) {
+        newCommentNotifications.delete(postId);
+        lastCheckedComments[postId] = Date.now();
+        localStorage.setItem('lastCheckedComments', JSON.stringify(lastCheckedComments));
+        
+        // Re-render the current page to remove notification styling
+        await renderPage(currentPage);
+        
+        // After re-render, we need to re-find the container and show comments
+        const updatedContainer = document.getElementById(`comments-for-${postId}`);
+        const updatedBtn = document.querySelector(`button[data-postid="${postId}"]`);
+        
+        if (updatedContainer && updatedBtn) {
+          updatedContainer.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
+          updatedContainer.classList.remove("hidden");
+          updatedBtn.textContent = "Hide Comments";
+
+          const comments = await fetchComments(postId);
+          const commentsHTML = comments.length
+            ? comments
+                .map((c) => {
+                  const { displayName } = formatCommentDisplay(c);
+                  return `
+                    <div class="comment border-t border-gray-600 py-2">
+                      <p class="text-sm text-purple-300 font-semibold">
+                        ${displayName}
+                      </p>
+                      <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
+                      <p class="text-xs text-gray-500">${new Date(
+                        c.createdAt
+                      ).toLocaleString()}</p>
+                    </div>
+                  `;
+                })
+                .join("")
+            : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
+
+          const formHTML = token
+            ? `
+            <form class="comment-form mt-4">
+              <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
+            </form>
+          `
+            : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
+
+          updatedContainer.innerHTML = commentsHTML + formHTML;
+
+          if (token) addCommentListener(updatedContainer, postId);
+        }
+        return;
+      }
+
+      // Normal flow for posts without notifications
       container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
       container.classList.remove("hidden");
       e.target.textContent = "Hide Comments";
@@ -240,19 +358,20 @@ function addShowCommentsListeners() {
       const comments = await fetchComments(postId);
       const commentsHTML = comments.length
         ? comments
-            .map(
-              (c) => `
-            <div class="comment border-t border-gray-600 py-2">
-              <p class="text-sm text-purple-300 font-semibold">${escapeHtml(
-                c.username
-              )}</p>
-              <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
-              <p class="text-xs text-gray-500">${new Date(
-                c.createdAt
-              ).toLocaleString()}</p>
-            </div>
-          `
-            )
+            .map((c) => {
+              const { displayName } = formatCommentDisplay(c);
+              return `
+                <div class="comment border-t border-gray-600 py-2">
+                  <p class="text-sm text-purple-300 font-semibold">
+                    ${displayName}
+                  </p>
+                  <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
+                  <p class="text-xs text-gray-500">${new Date(
+                    c.createdAt
+                  ).toLocaleString()}</p>
+                </div>
+              `;
+            })
             .join("")
         : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
 
@@ -272,7 +391,7 @@ function addShowCommentsListeners() {
   });
 }
 
-// Submit comment
+// Submit comment (removed source functionality)
 function addCommentListener(container, postId) {
   const form = container.querySelector(".comment-form");
   const textarea = form.querySelector(".comment-text");
@@ -289,7 +408,10 @@ function addCommentListener(container, postId) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ 
+          text,
+          source: 'dashboard' // Mark as dashboard comment to exclude from notifications
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to post comment");
@@ -300,7 +422,9 @@ function addCommentListener(container, postId) {
         "afterbegin",
         `
         <div class="comment border-t border-gray-600 py-2">
-          <p class="text-sm text-purple-300 font-semibold">You</p>
+          <p class="text-sm text-purple-300 font-semibold">
+            You
+          </p>
           <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
           <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
         </div>

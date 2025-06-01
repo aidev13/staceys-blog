@@ -8,16 +8,14 @@ const commentSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    required: true // Enforces presence of username
+    required: true
   },
   text: {
     type: String,
-    required: true // Ensure empty comments aren't stored
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    required: true
   }
+}, {
+  timestamps: true // Automatically adds createdAt and updatedAt
 });
 
 export default mongoose.model('Comment', commentSchema);
