@@ -71,15 +71,17 @@ if (loginForm) {
 }
 
 // Check for new public comments
+// Check for new public comments
 async function checkForNewPublicComments() {
   if (!allPosts.length) return;
   
   try {
     for (const post of allPosts) {
       const comments = await fetchComments(post._id);
-      // Filter for public comments - either explicitly marked as public or not marked as dashboard
+      // Only include comments that are explicitly marked as 'public' or have no source field
+      // Exclude any comments marked as 'dashboard'
       const publicComments = comments.filter(c => 
-        c.source === 'public' || (c.source !== 'dashboard' && c.source !== undefined) || !c.source
+        c.source === 'public' || (!c.source && c.source !== 'dashboard')
       );
       
       if (publicComments.length > 0) {
@@ -187,7 +189,138 @@ function formatCommentDisplay(comment) {
   return { displayName, badgeHtml: '' };
 }
 
-// Render posts
+// Edit post function
+async function editPost(postId, title, body) {
+  try {
+    const res = await fetch(`${api}/posts/${postId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, body }),
+    });
+
+    if (!res.ok) throw new Error("Failed to update post");
+    
+    const updatedPost = await res.json();
+    
+    // Update the post in the allPosts array
+    const postIndex = allPosts.findIndex(p => p._id === postId);
+    if (postIndex !== -1) {
+      allPosts[postIndex] = updatedPost;
+    }
+    
+    // Re-render the current page
+    await renderPage(currentPage);
+    
+    return updatedPost;
+  } catch (err) {
+    console.error("Error updating post:", err);
+    throw err;
+  }
+}
+
+// Delete comment function
+async function deleteComment(commentId, postId) {
+  try {
+    const res = await fetch(`${api}/comments/${commentId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to delete comment");
+    
+    // Refresh the comments for this post
+    const container = document.getElementById(`comments-for-${postId}`);
+    if (container && !container.classList.contains("hidden")) {
+      // Re-load and display comments
+      showCommentsForPost(postId, container);
+    }
+    
+    return true;
+  } catch (err) {
+    console.error("Error deleting comment:", err);
+    throw err;
+  }
+}
+
+// Helper function to show comments for a specific post
+async function showCommentsForPost(postId, container) {
+  container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
+
+  const comments = await fetchComments(postId);
+  const commentsHTML = comments.length
+    ? comments
+        .map((c) => {
+          const { displayName } = formatCommentDisplay(c);
+          // Add delete button if user is logged in and it's their comment
+          const deleteButton = token && c.userId === getCurrentUserId() 
+            ? `<button class="delete-comment-btn text-xs text-red-400 hover:text-red-300 ml-2" data-commentid="${c._id}" data-postid="${postId}">Delete</button>`
+            : '';
+          
+          return `
+            <div class="comment border-t border-gray-600 py-2">
+              <p class="text-sm text-purple-300 font-semibold flex items-center">
+                ${displayName}
+                ${deleteButton}
+              </p>
+              <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
+              <p class="text-xs text-gray-500">${new Date(
+                c.createdAt
+              ).toLocaleString()}</p>
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
+
+  const formHTML = token
+    ? `
+    <form class="comment-form mt-4">
+      <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
+    </form>
+  `
+    : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
+
+  container.innerHTML = commentsHTML + formHTML;
+
+  if (token) {
+    addCommentListener(container, postId);
+    addDeleteCommentListeners(container);
+  }
+}
+
+// Get current user ID (you'll need to decode this from the token or store it during login)
+function getCurrentUserId() {
+  // This is a simplified version - in a real app, you'd decode the JWT token
+  // For now, we'll assume the userId is stored in localStorage during login
+  return localStorage.getItem("userId");
+}
+
+// Add delete comment listeners
+function addDeleteCommentListeners(container) {
+  const deleteButtons = container.querySelectorAll(".delete-comment-btn");
+  deleteButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const commentId = e.target.getAttribute("data-commentid");
+      const postId = e.target.getAttribute("data-postid");
+      
+      if (confirm("Are you sure you want to delete this comment?")) {
+        try {
+          await deleteComment(commentId, postId);
+        } catch (err) {
+          alert("Error deleting comment: " + err.message);
+        }
+      }
+    });
+  });
+}
+
+// Render posts (updated to include edit button)
 async function renderPage(page) {
   currentPage = page;
   const start = (page - 1) * POSTS_PER_PAGE;
@@ -211,11 +344,17 @@ async function renderPage(page) {
         ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>' 
         : '';
 
+      // Add edit button if user is logged in and it's their post
+      const editButton = token && post.userId === getCurrentUserId()
+        ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${post._id}" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(post.body)}">Edit</button>`
+        : '';
+
       return `
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'ring-2 ring-blue-400' : ''}">
           <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
             ${escapeHtml(post.title)}${notificationBadge}
             ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2">(New public comment!)</span>' : ''}
+            ${editButton}
           </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
             post.body
@@ -251,7 +390,90 @@ async function renderPage(page) {
 
   addToggleListeners();
   addShowCommentsListeners();
+  addEditPostListeners();
   renderPagination();
+}
+
+// Add edit post listeners
+function addEditPostListeners() {
+  const editButtons = document.querySelectorAll(".edit-post-btn");
+  editButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const postId = e.target.getAttribute("data-postid");
+      const currentTitle = e.target.getAttribute("data-title");
+      const currentBody = e.target.getAttribute("data-body");
+      
+      showEditPostModal(postId, currentTitle, currentBody);
+    });
+  });
+}
+
+// Show edit post modal
+function showEditPostModal(postId, currentTitle, currentBody) {
+  // Create modal HTML
+  const modalHTML = `
+    <div id="editPostModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+        <h3 class="text-xl font-semibold text-purple-400 mb-4">Edit Post</h3>
+        <form id="editPostForm">
+          <div class="mb-4">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Title</label>
+            <input type="text" id="editTitle" class="w-full p-2 rounded bg-gray-700 text-white" value="${currentTitle}" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Body</label>
+            <textarea id="editBody" class="w-full p-2 rounded bg-gray-700 text-white" rows="4" required>${currentBody}</textarea>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <button type="button" id="cancelEdit" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
+            <button type="submit" class="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  const modal = document.getElementById('editPostModal');
+  const form = document.getElementById('editPostForm');
+  const cancelBtn = document.getElementById('cancelEdit');
+  
+  // Close modal function
+  const closeModal = () => {
+    modal.remove();
+  };
+  
+  // Cancel button
+  cancelBtn.addEventListener('click', closeModal);
+  
+  // Click outside modal to close
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+  
+  // Form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const title = document.getElementById('editTitle').value.trim();
+    const body = document.getElementById('editBody').value.trim();
+    
+    if (!title || !body) {
+      alert('Title and body are required.');
+      return;
+    }
+    
+    try {
+      await editPost(postId, title, body);
+      closeModal();
+    } catch (err) {
+      alert('Error updating post: ' + err.message);
+    }
+  });
 }
 
 // Toggle Read More
@@ -310,88 +532,23 @@ function addShowCommentsListeners() {
         const updatedBtn = document.querySelector(`button[data-postid="${postId}"]`);
         
         if (updatedContainer && updatedBtn) {
-          updatedContainer.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
           updatedContainer.classList.remove("hidden");
           updatedBtn.textContent = "Hide Comments";
-
-          const comments = await fetchComments(postId);
-          const commentsHTML = comments.length
-            ? comments
-                .map((c) => {
-                  const { displayName } = formatCommentDisplay(c);
-                  return `
-                    <div class="comment border-t border-gray-600 py-2">
-                      <p class="text-sm text-purple-300 font-semibold">
-                        ${displayName}
-                      </p>
-                      <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
-                      <p class="text-xs text-gray-500">${new Date(
-                        c.createdAt
-                      ).toLocaleString()}</p>
-                    </div>
-                  `;
-                })
-                .join("")
-            : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
-
-          const formHTML = token
-            ? `
-            <form class="comment-form mt-4">
-              <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
-              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
-            </form>
-          `
-            : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
-
-          updatedContainer.innerHTML = commentsHTML + formHTML;
-
-          if (token) addCommentListener(updatedContainer, postId);
+          await showCommentsForPost(postId, updatedContainer);
         }
         return;
       }
 
       // Normal flow for posts without notifications
-      container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
       container.classList.remove("hidden");
       e.target.textContent = "Hide Comments";
-
-      const comments = await fetchComments(postId);
-      const commentsHTML = comments.length
-        ? comments
-            .map((c) => {
-              const { displayName } = formatCommentDisplay(c);
-              return `
-                <div class="comment border-t border-gray-600 py-2">
-                  <p class="text-sm text-purple-300 font-semibold">
-                    ${displayName}
-                  </p>
-                  <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
-                  <p class="text-xs text-gray-500">${new Date(
-                    c.createdAt
-                  ).toLocaleString()}</p>
-                </div>
-              `;
-            })
-            .join("")
-        : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
-
-      const formHTML = token
-        ? `
-        <form class="comment-form mt-4">
-          <textarea class="comment-text w-full p-2 rounded bg-gray-700 text-white mb-2" rows="2" placeholder="Write a comment..."></textarea>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Post Comment</button>
-        </form>
-      `
-        : `<p class="text-sm text-gray-400 mt-2 italic">Login to post a comment.</p>`;
-
-      container.innerHTML = commentsHTML + formHTML;
-
-      if (token) addCommentListener(container, postId);
+      await showCommentsForPost(postId, container);
     });
   });
 }
 
 // Submit comment (removed source functionality)
+// Submit comment (updated to prevent self-notifications)
 function addCommentListener(container, postId) {
   const form = container.querySelector(".comment-form");
   const textarea = form.querySelector(".comment-text");
@@ -416,6 +573,10 @@ function addCommentListener(container, postId) {
 
       if (!res.ok) throw new Error("Failed to post comment");
       textarea.value = "";
+
+      // Update the lastCheckedComments timestamp to prevent self-notification
+      lastCheckedComments[postId] = Date.now();
+      localStorage.setItem('lastCheckedComments', JSON.stringify(lastCheckedComments));
 
       // Insert the new comment AT THE TOP of the comments container
       container.insertAdjacentHTML(
