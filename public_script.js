@@ -90,28 +90,40 @@ async function renderPage(page) {
       const count = commentCounts[post._id] || 0;
 
       return `
-        <div class="bg-gray-800 p-5 rounded-lg shadow-md relative" id="post-${
-          post._id
-        }">
-          <div class="absolute top-3 right-4 text-xs text-gray-500 select-none">
-            ${createdAt}
-          </div>
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${
-            post.title
-          }</h3>
-          <p class="text-gray-300 mb-2" id="preview-${
-            post._id
-          }">${previewText}</p>
-          <button id="readMoreBtn-${post._id}" onclick="expandPost('${
-        post._id
-      }')" class="text-sm text-purple-300 hover:underline">
-            Read More/Comment
-          </button>
-          <p class="text-sm text-purple-400 mt-1">💬 ${count} comment${
-        count !== 1 ? "s" : ""
-      }</p>
-        </div>
-      `;
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hover:border-purple-500 transition-colors duration-300" id="post-${
+                  post._id
+                }">
+                    <!-- Header with title and timestamp -->
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <h3 class="text-xl font-semibold text-purple-400 leading-tight flex-1">
+                            ${post.title}
+                        </h3>
+                        <span class="text-xs text-gray-400 whitespace-nowrap mt-1">
+                            ${createdAt}
+                        </span>
+                    </div>
+                    
+                    <!-- Preview text -->
+                    <p class="text-gray-300 leading-relaxed mb-4" id="preview-${
+                      post._id
+                    }">
+                        ${previewText}
+                    </p>
+                    
+                    <!-- Footer with actions -->
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-700">
+                        <button id="readMoreBtn-${
+                          post._id
+                        }" onclick="expandPost('${post._id}')" 
+                            class="text-sm text-purple-400 hover:text-purple-300 hover:underline transition-colors duration-200">
+                            Read More/Comment
+                        </button>
+                        <span class="text-sm text-gray-400">
+                            💬 ${count} comment${count !== 1 ? "s" : ""}
+                        </span>
+                    </div>
+                </div>
+            `;
     })
     .join("");
 
@@ -124,33 +136,35 @@ function renderPagination() {
   const container = document.getElementById("paginationControls");
 
   let buttonsHTML = `
-    <button ${currentPage === 1 ? "disabled" : ""}
-      onclick="goToPage(${currentPage - 1})"
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-      Prev
-    </button>
-  `;
+        <button ${currentPage === 1 ? "disabled" : ""}
+            onclick="goToPage(${currentPage - 1})"
+            class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 border border-gray-700 hover:border-purple-500">
+            Prev
+        </button>
+    `;
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-      <button
-        onclick="goToPage(${i})"
-        class="px-3 py-1 rounded transition ${
-          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
-        }"
-      >
-        ${i}
-      </button>
-    `;
+            <button
+                onclick="goToPage(${i})"
+                class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+                  currentPage === i
+                    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+                    : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
+                }"
+            >
+                ${i}
+            </button>
+        `;
   }
 
   buttonsHTML += `
-    <button ${currentPage === totalPages ? "disabled" : ""}
-      onclick="goToPage(${currentPage + 1})"
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-      Next
-    </button>
-  `;
+        <button ${currentPage === totalPages ? "disabled" : ""}
+            onclick="goToPage(${currentPage + 1})"
+            class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 border border-gray-700 hover:border-purple-500">
+            Next
+        </button>
+    `;
 
   container.innerHTML = buttonsHTML;
 }
@@ -183,35 +197,62 @@ async function expandPost(postId) {
     ? comments
         .map(
           (c) => `
-        <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
-          <div><strong class="text-purple-300">${
-            c.username || "Anon"
-          }</strong> • <span class="text-gray-400 text-xs">${commentTimeFormat(
+                    <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
+                        <div><strong class="text-purple-300">${
+                          c.username || "Anon"
+                        }</strong> • <span class="text-gray-400 text-xs">${commentTimeFormat(
             c.createdAt
           )}</span></div>
-          <p>${c.text}</p>
-        </div>`
+                        <p>${c.text}</p>
+                    </div>`
         )
         .join("")
     : `<p class="text-gray-500 text-sm">No comments yet.</p>`;
 
   const fullHTML = `
-    <h3 class="text-2xl font-semibold text-purple-400 mb-3">${post.title}</h3>
-    <p class="text-gray-300 mb-3">${post.body}</p>
-    <p class="text-xs text-gray-500 mb-3">by ${
-      post.author || "Anon"
-    } • ${commentTimeFormat(post.createdAt)}</p>
-    <hr class="border-gray-600 mb-4" />
-    <div>
-      <h4 class="text-sm text-purple-300 mb-2">Comments</h4>
-      ${commentsHTML}
-    </div>
-    <form onsubmit="return postComment('${postId}', this, event)" class="mt-4 space-y-2">
-      <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
-      <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
-      <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
-    </form>
-  `;
+<!-- Title -->
+<h3 class="text-2xl font-semibold text-purple-400 mb-4">${post.title}</h3>
+
+<!-- Body -->
+<p class="text-gray-300 mb-4">${post.body}</p>
+
+<!-- Author + Time -->
+<p class="text-xs text-gray-500 mb-4">
+  by ${post.author || "Anon"} • ${commentTimeFormat(post.createdAt)}
+</p>
+
+<!-- Divider -->
+<hr class="border-gray-700 mb-5" />
+
+<!-- Comments Section -->
+<div>
+  <h4 class="text-sm text-purple-300 mb-3">Comments</h4>
+  ${commentsHTML}
+</div>
+
+<!-- Comment Form -->
+<form onsubmit="return postComment('${postId}', this, event)" class="mt-6 space-y-3">
+  <input
+  name="username"
+  class="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-600 mb-2"
+  placeholder="Your name"
+/>
+<textarea
+  name="text"
+  class="w-full px-3 py-3 text-sm rounded bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-600"
+  placeholder="Write a comment..."
+  required
+></textarea>
+
+  <button
+    class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 text-sm rounded shadow-md transition-colors duration-200"
+  >
+    Post Comment
+  </button>
+</form>
+
+
+    `;
 
   document.getElementById("modalBody").innerHTML = fullHTML;
   document.getElementById("modalOverlay").classList.remove("hidden");
@@ -229,7 +270,7 @@ async function postComment(postId, form, event) {
   const data = {
     username: form.username.value,
     text: form.text.value,
-    source: 'public' // Add source identifier for public comments
+    source: "public", // Add source identifier for public comments
   };
 
   await fetch(`${api}/comments/${postId}`, {
@@ -245,8 +286,10 @@ async function postComment(postId, form, event) {
   // Update inline comment count as well
   const counts = await loadCommentCounts([postId]);
   const count = counts[postId] || 0;
-  const countElem = document.querySelector(`#post-${postId} p.text-purple-400`);
-  if (countElem) {
+  const countElem = document.querySelector(
+    `#post-${postId} span.text-gray-400`
+  );
+  if (countElem && countElem.textContent.includes("comment")) {
     countElem.textContent = `💬 ${count} comment${count !== 1 ? "s" : ""}`;
   }
 
