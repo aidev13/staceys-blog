@@ -71,7 +71,9 @@ async function loadPosts() {
   try {
     const res = await fetch(`${api}/posts`);
     if (!res.ok) throw new Error("Failed to fetch posts");
-    allPosts = (await res.json()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    allPosts = (await res.json()).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     renderPage(currentPage);
   } catch (err) {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
@@ -99,8 +101,11 @@ async function loadCommentCounts(postIds) {
   if (validIds.length === 0) return {};
 
   try {
-    const res = await fetch(`${api}/comments/counts?postIds=${validIds.join(",")}`);
-    if (!res.ok) throw new Error(`Failed to load comment counts: ${res.statusText}`);
+    const res = await fetch(
+      `${api}/comments/counts?postIds=${validIds.join(",")}`
+    );
+    if (!res.ok)
+      throw new Error(`Failed to load comment counts: ${res.statusText}`);
     const data = await res.json();
     const counts = {};
     data.forEach(({ _id, count }) => {
@@ -139,22 +144,43 @@ async function renderPage(page) {
     .map((post, index) => {
       const previewLimit = 150;
       const isLong = post.body.length > previewLimit;
-      const previewText = isLong ? post.body.slice(0, previewLimit) + "..." : post.body;
+      const previewText = isLong
+        ? post.body.slice(0, previewLimit) + "..."
+        : post.body;
       const count = commentCounts[post._id] || 0;
 
       return `
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6">
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(post.title)}</h3>
-          <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(post.body)}" data-index="${index}">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${escapeHtml(
+            post.title
+          )}</h3>
+          <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
+            post.body
+          )}" data-index="${index}">
             ${escapeHtml(previewText)}
           </p>
-          ${isLong ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>` : ""}
+          ${
+            isLong
+              ? `<button class="toggle-btn text-purple-300 hover:underline text-sm mb-4" data-index="${index}">Read more</button>`
+              : ""
+          }
           <p class="text-xs text-gray-500">
-            by ${escapeHtml(post.author || "Anon")} on ${new Date(post.createdAt).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            by ${escapeHtml(post.author || "Anon")} on ${new Date(
+        post.createdAt
+      ).toLocaleDateString()} at ${new Date(post.createdAt).toLocaleTimeString(
+        [],
+        { hour: "2-digit", minute: "2-digit" }
+      )}
           </p>
-          <p class="text-sm text-purple-400 mt-2 mb-2">💬 ${count} comment${count !== 1 ? "s" : ""}</p>
-          <button class="show-comments-btn text-sm text-blue-400 hover:underline mb-4" data-postid="${post._id}">Show Comments</button>
-          <div class="comments-container hidden" id="comments-for-${post._id}"></div>
+          <p class="text-sm text-purple-400 mt-2 mb-2">💬 ${count} comment${
+        count !== 1 ? "s" : ""
+      }</p>
+          <button class="show-comments-btn text-sm text-blue-400 hover:underline mb-4" data-postid="${
+            post._id
+          }">Show Comments</button>
+          <div class="comments-container hidden" id="comments-for-${
+            post._id
+          }"></div>
         </article>
       `;
     })
@@ -171,7 +197,9 @@ function addToggleListeners() {
   buttons.forEach((button) => {
     button.addEventListener("click", (e) => {
       const idx = e.target.getAttribute("data-index");
-      const postBody = document.querySelector(`.post-body[data-index="${idx}"]`);
+      const postBody = document.querySelector(
+        `.post-body[data-index="${idx}"]`
+      );
       const fullText = postBody.getAttribute("data-full");
 
       if (e.target.textContent === "Read more") {
@@ -179,7 +207,10 @@ function addToggleListeners() {
         e.target.textContent = "Show less";
       } else {
         const previewLimit = 150;
-        const previewText = fullText.length > previewLimit ? fullText.slice(0, previewLimit) + "..." : fullText;
+        const previewText =
+          fullText.length > previewLimit
+            ? fullText.slice(0, previewLimit) + "..."
+            : fullText;
         postBody.textContent = previewText;
         e.target.textContent = "Read more";
       }
@@ -208,13 +239,21 @@ function addShowCommentsListeners() {
 
       const comments = await fetchComments(postId);
       const commentsHTML = comments.length
-        ? comments.map((c) => `
+        ? comments
+            .map(
+              (c) => `
             <div class="comment border-t border-gray-600 py-2">
-              <p class="text-sm text-purple-300 font-semibold">${escapeHtml(c.username)}</p>
+              <p class="text-sm text-purple-300 font-semibold">${escapeHtml(
+                c.username
+              )}</p>
               <p class="text-gray-300 text-sm">${escapeHtml(c.text)}</p>
-              <p class="text-xs text-gray-500">${new Date(c.createdAt).toLocaleString()}</p>
+              <p class="text-xs text-gray-500">${new Date(
+                c.createdAt
+              ).toLocaleString()}</p>
             </div>
-          `).join("")
+          `
+            )
+            .join("")
         : `<p class="text-gray-400 text-sm italic">No comments yet.</p>`;
 
       const formHTML = token
@@ -255,13 +294,16 @@ function addCommentListener(container, postId) {
 
       if (!res.ok) throw new Error("Failed to post comment");
       textarea.value = "";
-      form.previousElementSibling.insertAdjacentHTML("beforebegin", `
+      form.previousElementSibling.insertAdjacentHTML(
+        "beforebegin",
+        `
         <div class="comment border-t border-gray-600 py-2">
           <p class="text-sm text-purple-300 font-semibold">You</p>
           <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
           <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
         </div>
-      `);
+      `
+      );
     } catch (err) {
       alert(err.message);
     }
@@ -272,17 +314,23 @@ function addCommentListener(container, postId) {
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   let buttonsHTML = `
-    <button data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Prev</button>
+    <button data-page="${currentPage - 1}" ${
+    currentPage === 1 ? "disabled" : ""
+  } class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Prev</button>
   `;
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-      <button data-page="${i}" class="px-3 py-1 rounded transition ${currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"}">${i}</button>
+      <button data-page="${i}" class="px-3 py-1 rounded transition ${
+      currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
+    }">${i}</button>
     `;
   }
 
   buttonsHTML += `
-    <button data-page="${currentPage + 1}" ${currentPage === totalPages ? "disabled" : ""} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+    <button data-page="${currentPage + 1}" ${
+    currentPage === totalPages ? "disabled" : ""
+  } class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
   `;
 
   paginationDiv.innerHTML = buttonsHTML;

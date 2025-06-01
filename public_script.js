@@ -47,9 +47,7 @@ async function loadCommentCounts(postIds) {
   if (validIds.length === 0) return {};
 
   try {
-    const res = await fetch(
-      `${api}/comments/counts?postIds=${validIds.join(",")}`
-    );
+    const res = await fetch(`${api}/comments/counts?postIds=${validIds.join(",")}`);
     if (!res.ok) throw new Error("Failed to load comment counts");
     const data = await res.json();
     const counts = {};
@@ -59,7 +57,7 @@ async function loadCommentCounts(postIds) {
     return counts;
   } catch (err) {
     console.error(err);
-    return {}; // fail silently on error
+    return {};
   }
 }
 
@@ -90,47 +88,16 @@ async function renderPage(page) {
       const count = commentCounts[post._id] || 0;
 
       return `
-        <div class="bg-gray-800 p-5 rounded-lg shadow-md relative" id="post-${
-          post._id
-        }">
+        <div class="bg-gray-800 p-5 rounded-lg shadow-md relative" id="post-${post._id}">
           <div class="absolute top-3 right-4 text-xs text-gray-500 select-none">
             ${createdAt}
           </div>
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${
-            post.title
-          }</h3>
-          <p class="text-gray-300 mb-2" id="preview-${
-            post._id
-          }">${previewText}</p>
-          <button id="readMoreBtn-${post._id}" onclick="expandPost('${
-        post._id
-      }')" class="text-sm text-purple-300 hover:underline">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${post.title}</h3>
+          <p class="text-gray-300 mb-2" id="preview-${post._id}">${previewText}</p>
+          <button id="readMoreBtn-${post._id}" onclick="expandPost('${post._id}')" class="text-sm text-purple-300 hover:underline">
             Read More/Comment
           </button>
-          <p class="text-sm text-purple-400 mt-1">💬 ${count} comment${
-        count !== 1 ? "s" : ""
-      }</p>
-
-          <div id="full-${post._id}" class="hidden mt-4 space-y-2">
-            <p class="text-gray-300">${post.body}</p>
-            <p class="text-xs text-gray-500 mb-3">by ${
-              post.author || "Anon"
-            }</p>
-            <hr class="border-gray-600 mb-3" />
-            <div id="comments-${post._id}">
-              <p class="text-sm text-gray-400">Loading comments...</p>
-            </div>
-            <form onsubmit="return postComment('${
-              post._id
-            }', this, event)" class="mt-4 space-y-2">
-              <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
-              <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
-              <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
-            </form>
-            <button onclick="collapsePost('${
-              post._id
-            }')" class="text-sm text-purple-300 hover:underline">Collapse</button>
-          </div>
+          <p class="text-sm text-purple-400 mt-1">💬 ${count} comment${count !== 1 ? "s" : ""}</p>
         </div>
       `;
     })
@@ -145,35 +112,35 @@ function renderPagination() {
   const container = document.getElementById("paginationControls");
 
   let buttonsHTML = `
-        <button ${currentPage === 1 ? "disabled" : ""}
-          onclick="goToPage(${currentPage - 1})"
-          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-          Prev
-        </button>
-      `;
+    <button ${currentPage === 1 ? "disabled" : ""}
+      onclick="goToPage(${currentPage - 1})"
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Prev
+    </button>
+  `;
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-          <button
-            onclick="goToPage(${i})"
-            class="px-3 py-1 rounded transition ${
-              currentPage === i
-                ? "bg-purple-600"
-                : "bg-gray-700 hover:bg-gray-600"
-            }"
-          >
-            ${i}
-          </button>
-        `;
+      <button
+        onclick="goToPage(${i})"
+        class="px-3 py-1 rounded transition ${
+          currentPage === i
+            ? "bg-purple-600"
+            : "bg-gray-700 hover:bg-gray-600"
+        }"
+      >
+        ${i}
+      </button>
+    `;
   }
 
   buttonsHTML += `
-        <button ${currentPage === totalPages ? "disabled" : ""}
-          onclick="goToPage(${currentPage + 1})"
-          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
-          Next
-        </button>
-      `;
+    <button ${currentPage === totalPages ? "disabled" : ""}
+      onclick="goToPage(${currentPage + 1})"
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Next
+    </button>
+  `;
 
   container.innerHTML = buttonsHTML;
 }
@@ -186,52 +153,57 @@ function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// Open post in modal
 async function expandPost(postId) {
-  document.getElementById(`preview-${postId}`).classList.add("hidden");
-  document.getElementById(`readMoreBtn-${postId}`).classList.add("hidden");
-  document.getElementById(`full-${postId}`).classList.remove("hidden");
+  const post = allPosts.find(p => p._id === postId);
+  const commentRes = await fetch(`${api}/comments/${postId}`);
+  const comments = await commentRes.json();
 
-  const res = await fetch(`${api}/comments/${postId}`);
-  const comments = await res.json();
+  const commentTimeFormat = (date) =>
+    new Date(date).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   const commentsHTML = comments.length
-    ? comments
-        .map((c) => {
-          const commentTime = new Date(c.createdAt).toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+    ? comments.map(c => `
+        <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
+          <div><strong class="text-purple-300">${c.username || "Anon"}</strong> • <span class="text-gray-400 text-xs">${commentTimeFormat(c.createdAt)}</span></div>
+          <p>${c.text}</p>
+        </div>`).join("")
+    : `<p class="text-gray-500 text-sm">No comments yet.</p>`;
 
-          return `
-          <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
-            <div><strong class="text-purple-300">${
-              c.username || "Anon"
-            }</strong> • <span class="text-gray-400 text-xs">${commentTime}</span></div>
-            <p>${c.text}</p>
-          </div>
-        `;
-        })
-        .join("")
-    : '<p class="text-gray-500 text-sm">No comments yet.</p>';
+  const fullHTML = `
+    <h3 class="text-2xl font-semibold text-purple-400 mb-3">${post.title}</h3>
+    <p class="text-gray-300 mb-3">${post.body}</p>
+    <p class="text-xs text-gray-500 mb-3">by ${post.author || "Anon"} • ${commentTimeFormat(post.createdAt)}</p>
+    <hr class="border-gray-600 mb-4" />
+    <div>
+      <h4 class="text-sm text-purple-300 mb-2">Comments</h4>
+      ${commentsHTML}
+    </div>
+    <form onsubmit="return postComment('${postId}', this, event)" class="mt-4 space-y-2">
+      <input name="username" class="w-full px-3 py-1 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Your name" />
+      <textarea name="text" class="w-full px-3 py-2 text-sm rounded bg-gray-700 border border-gray-600 text-white placeholder-gray-400" placeholder="Write a comment..." required></textarea>
+      <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 text-sm rounded">Post Comment</button>
+    </form>
+  `;
 
-  document.getElementById(`comments-${postId}`).innerHTML = `
-        <h4 class="text-sm text-purple-300 mb-2">Comments</h4>
-        ${commentsHTML}
-      `;
+  document.getElementById("modalBody").innerHTML = fullHTML;
+  document.getElementById("modalOverlay").classList.remove("hidden");
 }
 
-function collapsePost(postId) {
-  document.getElementById(`preview-${postId}`).classList.remove("hidden");
-  document.getElementById(`readMoreBtn-${postId}`).classList.remove("hidden");
-  document.getElementById(`full-${postId}`).classList.add("hidden");
+function closeModal() {
+  document.getElementById("modalOverlay").classList.add("hidden");
+  document.getElementById("modalBody").innerHTML = "";
 }
 
 // Updated postComment with event.preventDefault()
 async function postComment(postId, form, event) {
-  event.preventDefault(); // Prevent page reload
+  event.preventDefault();
 
   const data = {
     username: form.username.value,
@@ -246,9 +218,9 @@ async function postComment(postId, form, event) {
 
   form.text.value = "";
 
-  await expandPost(postId); // Refresh comments
+  await expandPost(postId); // Refresh modal content
 
-  // Refresh and update comment count after posting a comment
+  // Update inline comment count as well
   const counts = await loadCommentCounts([postId]);
   const count = counts[postId] || 0;
   const countElem = document.querySelector(`#post-${postId} p.text-purple-400`);
@@ -256,7 +228,7 @@ async function postComment(postId, form, event) {
     countElem.textContent = `💬 ${count} comment${count !== 1 ? "s" : ""}`;
   }
 
-  return false; // Just in case
+  return false;
 }
 
 loadPosts();
