@@ -115,8 +115,8 @@ async function loadPosts() {
     // Check for new public comments after loading posts
     await checkForNewPublicComments();
     
-    // Set up periodic checking every 30 seconds
-    setInterval(checkForNewPublicComments, 30000);
+    // Set up periodic checking every 120 seconds
+    setInterval(checkForNewPublicComments, 120000);
   } catch (err) {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
   }
@@ -189,37 +189,37 @@ function formatCommentDisplay(comment) {
   return { displayName, badgeHtml: '' };
 }
 
-// Edit post function
-async function editPost(postId, title, body) {
-  try {
-    const res = await fetch(`${api}/posts/${postId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title, body }),
-    });
+// // Edit post function
+// async function editPost(postId, title, body) {
+//   try {
+//     const res = await fetch(`${api}/posts/${postId}`, {
+//       method: "PUT",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//       body: JSON.stringify({ title, body }),
+//     });
 
-    if (!res.ok) throw new Error("Failed to update post");
+//     if (!res.ok) throw new Error("Failed to update post");
     
-    const updatedPost = await res.json();
+//     const updatedPost = await res.json();
     
-    // Update the post in the allPosts array
-    const postIndex = allPosts.findIndex(p => p._id === postId);
-    if (postIndex !== -1) {
-      allPosts[postIndex] = updatedPost;
-    }
+//     // Update the post in the allPosts array
+//     const postIndex = allPosts.findIndex(p => p._id === postId);
+//     if (postIndex !== -1) {
+//       allPosts[postIndex] = updatedPost;
+//     }
     
-    // Re-render the current page
-    await renderPage(currentPage);
+//     // Re-render the current page
+//     await renderPage(currentPage);
     
-    return updatedPost;
-  } catch (err) {
-    console.error("Error updating post:", err);
-    throw err;
-  }
-}
+//     return updatedPost;
+//   } catch (err) {
+//     console.error("Error updating post:", err);
+//     throw err;
+//   }
+// }
 
 // Delete comment function
 async function deleteComment(commentId, postId) {
@@ -353,7 +353,7 @@ async function renderPage(page) {
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'border-2 border-blue-400' : ''}">
           <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
             ${escapeHtml(post.title)}${notificationBadge}
-            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2">New Comment</span>' : ''}
+            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2"> - New Comment</span>' : ''}
             ${editButton}
           </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
@@ -394,87 +394,87 @@ async function renderPage(page) {
   renderPagination();
 }
 
-// Add edit post listeners
-function addEditPostListeners() {
-  const editButtons = document.querySelectorAll(".edit-post-btn");
-  editButtons.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const postId = e.target.getAttribute("data-postid");
-      const currentTitle = e.target.getAttribute("data-title");
-      const currentBody = e.target.getAttribute("data-body");
+// // Add edit post listeners
+// function addEditPostListeners() {
+//   const editButtons = document.querySelectorAll(".edit-post-btn");
+//   editButtons.forEach((btn) => {
+//     btn.addEventListener("click", (e) => {
+//       const postId = e.target.getAttribute("data-postid");
+//       const currentTitle = e.target.getAttribute("data-title");
+//       const currentBody = e.target.getAttribute("data-body");
       
-      showEditPostModal(postId, currentTitle, currentBody);
-    });
-  });
-}
+//       showEditPostModal(postId, currentTitle, currentBody);
+//     });
+//   });
+// }
 
-// Show edit post modal
-function showEditPostModal(postId, currentTitle, currentBody) {
-  // Create modal HTML
-  const modalHTML = `
-    <div id="editPostModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-        <h3 class="text-xl font-semibold text-purple-400 mb-4">Edit Post</h3>
-        <form id="editPostForm">
-          <div class="mb-4">
-            <label class="block text-gray-300 text-sm font-bold mb-2">Title</label>
-            <input type="text" id="editTitle" class="w-full p-2 rounded bg-gray-700 text-white" value="${currentTitle}" required>
-          </div>
-          <div class="mb-4">
-            <label class="block text-gray-300 text-sm font-bold mb-2">Body</label>
-            <textarea id="editBody" class="w-full p-2 rounded bg-gray-700 text-white" rows="4" required>${currentBody}</textarea>
-          </div>
-          <div class="flex justify-end space-x-2">
-            <button type="button" id="cancelEdit" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
-            <button type="submit" class="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white">Save Changes</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
+// // Show edit post modal
+// function showEditPostModal(postId, currentTitle, currentBody) {
+//   // Create modal HTML
+//   const modalHTML = `
+//     <div id="editPostModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+//       <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+//         <h3 class="text-xl font-semibold text-purple-400 mb-4">Edit Post</h3>
+//         <form id="editPostForm">
+//           <div class="mb-4">
+//             <label class="block text-gray-300 text-sm font-bold mb-2">Title</label>
+//             <input type="text" id="editTitle" class="w-full p-2 rounded bg-gray-700 text-white" value="${currentTitle}" required>
+//           </div>
+//           <div class="mb-4">
+//             <label class="block text-gray-300 text-sm font-bold mb-2">Body</label>
+//             <textarea id="editBody" class="w-full p-2 rounded bg-gray-700 text-white" rows="4" required>${currentBody}</textarea>
+//           </div>
+//           <div class="flex justify-end space-x-2">
+//             <button type="button" id="cancelEdit" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
+//             <button type="submit" class="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white">Save Changes</button>
+//           </div>
+//         </form>
+//       </div>
+//     </div>
+//   `;
   
-  // Add modal to body
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
+//   // Add modal to body
+//   document.body.insertAdjacentHTML('beforeend', modalHTML);
   
-  const modal = document.getElementById('editPostModal');
-  const form = document.getElementById('editPostForm');
-  const cancelBtn = document.getElementById('cancelEdit');
+//   const modal = document.getElementById('editPostModal');
+//   const form = document.getElementById('editPostForm');
+//   const cancelBtn = document.getElementById('cancelEdit');
   
-  // Close modal function
-  const closeModal = () => {
-    modal.remove();
-  };
+//   // Close modal function
+//   const closeModal = () => {
+//     modal.remove();
+//   };
   
-  // Cancel button
-  cancelBtn.addEventListener('click', closeModal);
+//   // Cancel button
+//   cancelBtn.addEventListener('click', closeModal);
   
-  // Click outside modal to close
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      closeModal();
-    }
-  });
+//   // Click outside modal to close
+//   modal.addEventListener('click', (e) => {
+//     if (e.target === modal) {
+//       closeModal();
+//     }
+//   });
   
-  // Form submission
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+//   // Form submission
+//   form.addEventListener('submit', async (e) => {
+//     e.preventDefault();
     
-    const title = document.getElementById('editTitle').value.trim();
-    const body = document.getElementById('editBody').value.trim();
+//     const title = document.getElementById('editTitle').value.trim();
+//     const body = document.getElementById('editBody').value.trim();
     
-    if (!title || !body) {
-      alert('Title and body are required.');
-      return;
-    }
+//     if (!title || !body) {
+//       alert('Title and body are required.');
+//       return;
+//     }
     
-    try {
-      await editPost(postId, title, body);
-      closeModal();
-    } catch (err) {
-      alert('Error updating post: ' + err.message);
-    }
-  });
-}
+//     try {
+//       await editPost(postId, title, body);
+//       closeModal();
+//     } catch (err) {
+//       alert('Error updating post: ' + err.message);
+//     }
+//   });
+// }
 
 // Toggle Read More
 function addToggleListeners() {

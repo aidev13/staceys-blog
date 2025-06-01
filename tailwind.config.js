@@ -1,15 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./public/**/*.html",
-    "./*.html"
-  ],
+  content: ["./public/**/*.html", "./*.html"],
   theme: {
     extend: {},
   },
   plugins: [],
-    safelist: [
-    "border-2",
-    "border-blue-400",
-  ],
-}
+  safelist: ["text-xs", "border-2", "border-blue-400"],
+};
