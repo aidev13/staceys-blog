@@ -142,7 +142,7 @@ async function renderPage(page) {
 
   postsDiv.innerHTML = pagePosts
     .map((post, index) => {
-      const previewLimit = 150;
+      const previewLimit = 75;
       const isLong = post.body.length > previewLimit;
       const previewText = isLong
         ? post.body.slice(0, previewLimit) + "..."
@@ -206,7 +206,7 @@ function addToggleListeners() {
         postBody.textContent = fullText;
         e.target.textContent = "Show less";
       } else {
-        const previewLimit = 150;
+        const previewLimit = 75;
         const previewText =
           fullText.length > previewLimit
             ? fullText.slice(0, previewLimit) + "..."
