@@ -47,7 +47,9 @@ async function loadCommentCounts(postIds) {
   if (validIds.length === 0) return {};
 
   try {
-    const res = await fetch(`${api}/comments/counts?postIds=${validIds.join(",")}`);
+    const res = await fetch(
+      `${api}/comments/counts?postIds=${validIds.join(",")}`
+    );
     if (!res.ok) throw new Error("Failed to load comment counts");
     const data = await res.json();
     const counts = {};
@@ -88,16 +90,26 @@ async function renderPage(page) {
       const count = commentCounts[post._id] || 0;
 
       return `
-        <div class="bg-gray-800 p-5 rounded-lg shadow-md relative" id="post-${post._id}">
+        <div class="bg-gray-800 p-5 rounded-lg shadow-md relative" id="post-${
+          post._id
+        }">
           <div class="absolute top-3 right-4 text-xs text-gray-500 select-none">
             ${createdAt}
           </div>
-          <h3 class="text-xl font-semibold text-purple-400 mb-2">${post.title}</h3>
-          <p class="text-gray-300 mb-2" id="preview-${post._id}">${previewText}</p>
-          <button id="readMoreBtn-${post._id}" onclick="expandPost('${post._id}')" class="text-sm text-purple-300 hover:underline">
+          <h3 class="text-xl font-semibold text-purple-400 mb-2">${
+            post.title
+          }</h3>
+          <p class="text-gray-300 mb-2" id="preview-${
+            post._id
+          }">${previewText}</p>
+          <button id="readMoreBtn-${post._id}" onclick="expandPost('${
+        post._id
+      }')" class="text-sm text-purple-300 hover:underline">
             Read More/Comment
           </button>
-          <p class="text-sm text-purple-400 mt-1">💬 ${count} comment${count !== 1 ? "s" : ""}</p>
+          <p class="text-sm text-purple-400 mt-1">💬 ${count} comment${
+        count !== 1 ? "s" : ""
+      }</p>
         </div>
       `;
     })
@@ -124,9 +136,7 @@ function renderPagination() {
       <button
         onclick="goToPage(${i})"
         class="px-3 py-1 rounded transition ${
-          currentPage === i
-            ? "bg-purple-600"
-            : "bg-gray-700 hover:bg-gray-600"
+          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
         }"
       >
         ${i}
@@ -150,12 +160,13 @@ function goToPage(page) {
   if (page < 1 || page > totalPages) return;
   currentPage = page;
   renderPage(currentPage);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const venmo_box = document.getElementById("venmo");
+  venmo_box.scrollIntoView({ behavior: "smooth" });
 }
 
 // Open post in modal
 async function expandPost(postId) {
-  const post = allPosts.find(p => p._id === postId);
+  const post = allPosts.find((p) => p._id === postId);
   const commentRes = await fetch(`${api}/comments/${postId}`);
   const comments = await commentRes.json();
 
@@ -169,17 +180,27 @@ async function expandPost(postId) {
     });
 
   const commentsHTML = comments.length
-    ? comments.map(c => `
+    ? comments
+        .map(
+          (c) => `
         <div class="border-l-4 border-gray-600 pl-3 mb-2 text-sm">
-          <div><strong class="text-purple-300">${c.username || "Anon"}</strong> • <span class="text-gray-400 text-xs">${commentTimeFormat(c.createdAt)}</span></div>
+          <div><strong class="text-purple-300">${
+            c.username || "Anon"
+          }</strong> • <span class="text-gray-400 text-xs">${commentTimeFormat(
+            c.createdAt
+          )}</span></div>
           <p>${c.text}</p>
-        </div>`).join("")
+        </div>`
+        )
+        .join("")
     : `<p class="text-gray-500 text-sm">No comments yet.</p>`;
 
   const fullHTML = `
     <h3 class="text-2xl font-semibold text-purple-400 mb-3">${post.title}</h3>
     <p class="text-gray-300 mb-3">${post.body}</p>
-    <p class="text-xs text-gray-500 mb-3">by ${post.author || "Anon"} • ${commentTimeFormat(post.createdAt)}</p>
+    <p class="text-xs text-gray-500 mb-3">by ${
+      post.author || "Anon"
+    } • ${commentTimeFormat(post.createdAt)}</p>
     <hr class="border-gray-600 mb-4" />
     <div>
       <h4 class="text-sm text-purple-300 mb-2">Comments</h4>

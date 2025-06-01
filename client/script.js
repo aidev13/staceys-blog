@@ -294,74 +294,78 @@ function addCommentListener(container, postId) {
 
       if (!res.ok) throw new Error("Failed to post comment");
       textarea.value = "";
-      form.previousElementSibling.insertAdjacentHTML(
-        "beforebegin",
+
+      // Insert the new comment AT THE TOP of the comments container
+      container.insertAdjacentHTML(
+        "afterbegin",
         `
         <div class="comment border-t border-gray-600 py-2">
           <p class="text-sm text-purple-300 font-semibold">You</p>
           <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
           <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
         </div>
-      `
+        `
       );
     } catch (err) {
-      alert(err.message);
+      alert("Error posting comment: " + err.message);
     }
   });
 }
 
-// Pagination
+// Pagination controls
+// Replace the existing renderPagination function with this one
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   let buttonsHTML = `
     <button data-page="${currentPage - 1}" ${
     currentPage === 1 ? "disabled" : ""
-  } class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Prev</button>
+  }
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Prev
+    </button>
   `;
 
   for (let i = 1; i <= totalPages; i++) {
     buttonsHTML += `
-      <button data-page="${i}" class="px-3 py-1 rounded transition ${
-      currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
-    }">${i}</button>
+      <button data-page="${i}"
+        class="px-3 py-1 rounded transition ${
+          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
+        }">
+        ${i}
+      </button>
     `;
   }
 
   buttonsHTML += `
     <button data-page="${currentPage + 1}" ${
     currentPage === totalPages ? "disabled" : ""
-  } class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+  }
+      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      Next
+    </button>
   `;
 
   paginationDiv.innerHTML = buttonsHTML;
 
-  paginationDiv.onclick = (e) => {
-    const btn = e.target.closest("button[data-page]");
-    if (!btn || btn.disabled) return;
-    const page = parseInt(btn.getAttribute("data-page"));
-    if (!isNaN(page)) goToPage(page);
-  };
+  paginationDiv.querySelectorAll("button[data-page]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const page = parseInt(btn.getAttribute("data-page"));
+      if (!isNaN(page) && page >= 1 && page <= totalPages) {
+        renderPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  });
 }
 
-// Page switch
-function goToPage(page) {
-  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
-  if (page < 1 || page > totalPages) return;
-  currentPage = page;
-  renderPage(currentPage);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// Create a post
+// Create post form submit
 if (postForm) {
   postForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = titleInput.value.trim();
     const body = bodyInput.value.trim();
-    if (!title || !body) return;
-
-    if (!token) {
-      alert("You must be logged in to post.");
+    if (!title || !body) {
+      alert("Title and body are required.");
       return;
     }
 
@@ -374,35 +378,18 @@ if (postForm) {
         },
         body: JSON.stringify({ title, body }),
       });
-
       if (!res.ok) throw new Error("Failed to create post");
 
-      postForm.reset();
-      await loadPosts();
-      goToPage(1);
+      const newPost = await res.json();
+      allPosts.unshift(newPost);
+      renderPage(1);
+      titleInput.value = "";
+      bodyInput.value = "";
     } catch (err) {
-      alert(err.message);
+      alert("Error creating post: " + err.message);
     }
   });
 }
 
-function updateDateTime() {
-  const now = new Date();
-  const options = {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  };
-  const time = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const date = now.toLocaleDateString(undefined, options);
-  document.getElementById("datetime").textContent = `${date} • ${time}`;
-}
-
-updateDateTime();
-setInterval(updateDateTime, 1000);
-
-window.addEventListener("DOMContentLoaded", loadPosts);
+// Initial load
+if (postsDiv) loadPosts();
