@@ -105,7 +105,7 @@
         </div>
     </footer>
 
-    <script src="./public_script.js"></script>
+    <script type="module" src="js/public-app.js"></script>
     <script>
         window.addEventListener("DOMContentLoaded", () => {
             const profileBtn = document.querySelector('.profileBtn');
@@ -113,7 +113,7 @@
             profileBtn.textContent = isLoggedIn ? "Profile" : "Login";
 
             profileBtn.addEventListener("click", () => {
-                window.location.href = isLoggedIn ? "./public/index.html" : "./public/login.html";
+                window.location.href = isLoggedIn ? "./index.html" : "./login.html";
             });
         });
     </script>

@@ -43,6 +43,7 @@ async function showCommentsForPost(postId, container) {
   container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
 
   const comments = await fetchComments(postId);
+  
   const commentsHTML = comments.length
     ? comments
         .map((c) => {
@@ -348,25 +349,83 @@ function addCommentListener(container, postId) {
   });
 }
 
-// Pagination controls
+// Pagination controls (ULTRA COMPACT - max 2 pages, matching public style)
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+  if (totalPages <= 1) {
+    paginationDiv.innerHTML = "";
+    return;
+  }
+
   let buttonsHTML = `
     <button data-page="${currentPage - 1}" ${
     currentPage === 1 ? "disabled" : ""
   }
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 border border-gray-700 hover:border-purple-500">
       Prev
     </button>
   `;
 
-  for (let i = 1; i <= totalPages; i++) {
+  // Ultra compact pagination - max 2 pages
+  let startPage, endPage;
+  
+  if (totalPages <= 2) {
+    // Show all if 2 or fewer
+    startPage = 1;
+    endPage = totalPages;
+  } else {
+    // Always show exactly 2 pages
+    if (currentPage === 1) {
+      // At start: [1] [2] ... last
+      startPage = 1;
+      endPage = 2;
+    } else if (currentPage === totalPages) {
+      // At end: 1 ... [last-1] [last]
+      startPage = totalPages - 1;
+      endPage = totalPages;
+    } else {
+      // In middle: 1 ... [current] [current+1] ... last
+      startPage = currentPage;
+      endPage = Math.min(totalPages, currentPage + 1);
+    }
+  }
+
+  // Add first page if not in range
+  if (startPage > 1) {
+    buttonsHTML += `
+      <button data-page="1"
+        class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500">
+        1
+      </button>
+    `;
+    if (startPage > 2) {
+      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
+    }
+  }
+
+  // Add the 2 main pages
+  for (let i = startPage; i <= endPage; i++) {
     buttonsHTML += `
       <button data-page="${i}"
-        class="px-3 py-1 rounded transition ${
-          currentPage === i ? "bg-purple-600" : "bg-gray-700 hover:bg-gray-600"
+        class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+          currentPage === i 
+            ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500" 
+            : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
         }">
         ${i}
+      </button>
+    `;
+  }
+
+  // Add last page if not in range
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
+    }
+    buttonsHTML += `
+      <button data-page="${totalPages}"
+        class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500">
+        ${totalPages}
       </button>
     `;
   }
@@ -375,12 +434,12 @@ function renderPagination() {
     <button data-page="${currentPage + 1}" ${
     currentPage === totalPages ? "disabled" : ""
   }
-      class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition">
+      class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 border border-gray-700 hover:border-purple-500">
       Next
     </button>
   `;
 
-  paginationDiv.innerHTML = buttonsHTML;
+  paginationDiv.innerHTML = `<div class="flex flex-wrap items-center justify-center gap-2">${buttonsHTML}</div>`;
 
   paginationDiv.querySelectorAll("button[data-page]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
@@ -421,6 +480,7 @@ export function initializeCreatePostForm() {
         renderPage(1);
         titleInput.value = "";
         bodyInput.value = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         alert("Error creating post: " + err.message);
       }
