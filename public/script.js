@@ -6,7 +6,9 @@ let allPosts = [];
 const token = localStorage.getItem("token");
 
 // Notification system for new public comments
-let lastCheckedComments = JSON.parse(localStorage.getItem('lastCheckedComments') || '{}');
+let lastCheckedComments = JSON.parse(
+  localStorage.getItem("lastCheckedComments") || "{}"
+);
 let newCommentNotifications = new Set();
 
 // Elements
@@ -74,31 +76,36 @@ if (loginForm) {
 // Check for new public comments
 async function checkForNewPublicComments() {
   if (!allPosts.length) return;
-  
+
   try {
     for (const post of allPosts) {
       const comments = await fetchComments(post._id);
       // Only include comments that are explicitly marked as 'public' or have no source field
       // Exclude any comments marked as 'dashboard'
-      const publicComments = comments.filter(c => 
-        c.source === 'public' || (!c.source && c.source !== 'dashboard')
+      const publicComments = comments.filter(
+        (c) => c.source === "public" || (!c.source && c.source !== "dashboard")
       );
-      
+
       if (publicComments.length > 0) {
         const lastChecked = lastCheckedComments[post._id] || 0;
-        const newPublicComments = publicComments.filter(c => new Date(c.createdAt).getTime() > lastChecked);
-        
+        const newPublicComments = publicComments.filter(
+          (c) => new Date(c.createdAt).getTime() > lastChecked
+        );
+
         if (newPublicComments.length > 0) {
           newCommentNotifications.add(post._id);
-          console.log(`New public comment detected for post ${post._id}:`, newPublicComments);
+          console.log(
+            `New public comment detected for post ${post._id}:`,
+            newPublicComments
+          );
         }
       }
     }
-    
+
     // Re-render to show notifications
     renderPage(currentPage);
   } catch (err) {
-    console.error('Error checking for new comments:', err);
+    console.error("Error checking for new comments:", err);
   }
 }
 
@@ -111,10 +118,10 @@ async function loadPosts() {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
     renderPage(currentPage);
-    
+
     // Check for new public comments after loading posts
     await checkForNewPublicComments();
-    
+
     // Set up periodic checking every 120 seconds
     setInterval(checkForNewPublicComments, 120000);
   } catch (err) {
@@ -167,9 +174,11 @@ async function fetchComments(postId) {
     const res = await fetch(`${api}/comments/${postId}`);
     if (!res.ok) throw new Error("Failed to fetch comments");
     const comments = await res.json();
-    
+
     // Sort comments by creation date (newest first) to show recent public comments
-    return comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return comments.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
   } catch (err) {
     console.error("Error fetching comments:", err);
     return [];
@@ -179,14 +188,14 @@ async function fetchComments(postId) {
 // Helper function to format display name
 function formatCommentDisplay(comment) {
   let displayName;
-  
-  if (!comment.username || comment.username.trim() === '') {
-    displayName = 'Anonymous';
+
+  if (!comment.username || comment.username.trim() === "") {
+    displayName = "Anonymous";
   } else {
     displayName = escapeHtml(comment.username);
   }
-  
-  return { displayName, badgeHtml: '' };
+
+  return { displayName, badgeHtml: "" };
 }
 
 // // Edit post function
@@ -202,18 +211,18 @@ function formatCommentDisplay(comment) {
 //     });
 
 //     if (!res.ok) throw new Error("Failed to update post");
-    
+
 //     const updatedPost = await res.json();
-    
+
 //     // Update the post in the allPosts array
 //     const postIndex = allPosts.findIndex(p => p._id === postId);
 //     if (postIndex !== -1) {
 //       allPosts[postIndex] = updatedPost;
 //     }
-    
+
 //     // Re-render the current page
 //     await renderPage(currentPage);
-    
+
 //     return updatedPost;
 //   } catch (err) {
 //     console.error("Error updating post:", err);
@@ -232,14 +241,14 @@ async function deleteComment(commentId, postId) {
     });
 
     if (!res.ok) throw new Error("Failed to delete comment");
-    
+
     // Refresh the comments for this post
     const container = document.getElementById(`comments-for-${postId}`);
     if (container && !container.classList.contains("hidden")) {
       // Re-load and display comments
       showCommentsForPost(postId, container);
     }
-    
+    renderPage(currentPage);
     return true;
   } catch (err) {
     console.error("Error deleting comment:", err);
@@ -258,9 +267,9 @@ async function showCommentsForPost(postId, container) {
           const { displayName } = formatCommentDisplay(c);
           // Add delete button if user is logged in - ANY logged in user can delete ANY comment
           const deleteButton = token
-            ? `<button class="delete-comment-btn text-xs text-red-400 hover:text-red-300 ml-2" data-commentid="${c._id}" data-postid="${postId}">Delete</button>`
-            : '';
-          
+            ? `<button class="delete-comment-btn text-xs gap-4 text-red-400 hover:text-red-600 ml-2" data-commentid="${c._id}" data-postid="${postId}">Delete</button>`
+            : "";
+
           return `
             <div class="comment border-t border-gray-600 py-2">
               <p class="text-sm text-purple-300 font-semibold flex items-center">
@@ -308,7 +317,7 @@ function addDeleteCommentListeners(container) {
     btn.addEventListener("click", async (e) => {
       const commentId = e.target.getAttribute("data-commentid");
       const postId = e.target.getAttribute("data-postid");
-      
+
       if (confirm("Are you sure you want to delete this comment?")) {
         try {
           await deleteComment(commentId, postId);
@@ -337,23 +346,34 @@ async function renderPage(page) {
         ? post.body.slice(0, previewLimit) + "..."
         : post.body;
       const count = commentCounts[post._id] || 0;
-      
+
       // Check if this post has new public comment notifications
       const hasNewComments = newCommentNotifications.has(post._id);
-      const notificationBadge = hasNewComments 
-        ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>' 
-        : '';
+      const notificationBadge = hasNewComments
+        ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>'
+        : "";
 
       // Add edit button if user is logged in and it's their post
-      const editButton = token && post.userId === getCurrentUserId()
-        ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${post._id}" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(post.body)}">Edit</button>`
-        : '';
+      const editButton =
+        token && post.userId === getCurrentUserId()
+          ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${
+              post._id
+            }" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(
+              post.body
+            )}">Edit</button>`
+          : "";
 
       return `
-        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${hasNewComments ? 'border-2 border-blue-400' : ''}">
+        <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${
+          hasNewComments ? "border-2 border-blue-400" : ""
+        }">
           <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
             ${escapeHtml(post.title)}${notificationBadge}
-            ${hasNewComments ? '<span class="text-xs text-blue-400 ml-2"> - New Comment</span>' : ''}
+            ${
+              hasNewComments
+                ? '<span class="text-xs text-blue-400 ml-2"> - New Comment</span>'
+                : ""
+            }
             ${editButton}
           </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
@@ -402,7 +422,7 @@ async function renderPage(page) {
 //       const postId = e.target.getAttribute("data-postid");
 //       const currentTitle = e.target.getAttribute("data-title");
 //       const currentBody = e.target.getAttribute("data-body");
-      
+
 //       showEditPostModal(postId, currentTitle, currentBody);
 //     });
 //   });
@@ -432,41 +452,41 @@ async function renderPage(page) {
 //       </div>
 //     </div>
 //   `;
-  
+
 //   // Add modal to body
 //   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
+
 //   const modal = document.getElementById('editPostModal');
 //   const form = document.getElementById('editPostForm');
 //   const cancelBtn = document.getElementById('cancelEdit');
-  
+
 //   // Close modal function
 //   const closeModal = () => {
 //     modal.remove();
 //   };
-  
+
 //   // Cancel button
 //   cancelBtn.addEventListener('click', closeModal);
-  
+
 //   // Click outside modal to close
 //   modal.addEventListener('click', (e) => {
 //     if (e.target === modal) {
 //       closeModal();
 //     }
 //   });
-  
+
 //   // Form submission
 //   form.addEventListener('submit', async (e) => {
 //     e.preventDefault();
-    
+
 //     const title = document.getElementById('editTitle').value.trim();
 //     const body = document.getElementById('editBody').value.trim();
-    
+
 //     if (!title || !body) {
 //       alert('Title and body are required.');
 //       return;
 //     }
-    
+
 //     try {
 //       await editPost(postId, title, body);
 //       closeModal();
@@ -520,23 +540,26 @@ function addShowCommentsListeners() {
 
       // Check if this post has new comment notifications
       const hadNewComments = newCommentNotifications.has(postId);
-      
+
       // Clear notification for this post when viewing comments
       if (hadNewComments) {
         newCommentNotifications.delete(postId);
         lastCheckedComments[postId] = Date.now();
-        localStorage.setItem('lastCheckedComments', JSON.stringify(lastCheckedComments));
-        
+        localStorage.setItem(
+          "lastCheckedComments",
+          JSON.stringify(lastCheckedComments)
+        );
+
         // Update just this post's styling without full re-render
-        const postElement = btn.closest('article');
+        const postElement = btn.closest("article");
         if (postElement) {
-          postElement.classList.remove('border-2', 'border-blue-400');
-          
+          postElement.classList.remove("border-2", "border-blue-400");
+
           // Remove notification badge and text
-          const title = postElement.querySelector('h3');
+          const title = postElement.querySelector("h3");
           if (title) {
-            const badge = title.querySelector('.bg-red-500');
-            const notificationText = title.querySelector('.text-blue-400');
+            const badge = title.querySelector(".bg-red-500");
+            const notificationText = title.querySelector(".text-blue-400");
             if (badge) badge.remove();
             if (notificationText) notificationText.remove();
           }
@@ -569,34 +592,42 @@ function addCommentListener(container, postId) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text,
-          source: 'dashboard' // Mark as dashboard comment to exclude from notifications
+          source: "dashboard", // Mark as dashboard comment to exclude from notifications
         }),
       });
 
       if (!res.ok) throw new Error("Failed to post comment");
+
+      // Get the real comment data with the actual _id from the server
+      const newComment = await res.json();
       textarea.value = "";
 
       // Update the lastCheckedComments timestamp to prevent self-notification
       lastCheckedComments[postId] = Date.now();
-      localStorage.setItem('lastCheckedComments', JSON.stringify(lastCheckedComments));
+      localStorage.setItem(
+        "lastCheckedComments",
+        JSON.stringify(lastCheckedComments)
+      );
 
-      // Insert the new comment AT THE TOP of the comments container
+      // Insert the new comment AT THE TOP of the comments container using REAL comment ID
       container.insertAdjacentHTML(
         "afterbegin",
         `
         <div class="comment border-t border-gray-600 py-2">
-          <p class="text-sm text-purple-300 font-semibold flex items-center">
+          <p class="text-sm text-purple-300 font-semibold flex items-center gap-4">
             You
-            <button class="delete-comment-btn text-xs text-red-400 hover:text-red-300 ml-2" data-commentid="temp-${Date.now()}" data-postid="${postId}">Delete</button>
+            <button class="delete-comment-btn text-xs text-red-400 hover:text-red-600" data-commentid="${
+              newComment._id
+            }" data-postid="${postId}">Delete</button>
           </p>
           <p class="text-gray-300 text-sm">${escapeHtml(text)}</p>
           <p class="text-xs text-gray-500">${new Date().toLocaleString()}</p>
         </div>
         `
       );
-      
+
       // Add delete listener for the new comment
       addDeleteCommentListeners(container);
     } catch (err) {
