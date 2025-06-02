@@ -1,15 +1,14 @@
-const api = "http://localhost:3000/api";
-const POSTS_PER_PAGE = 5;
-let currentPage = 1;
-let allPosts = [];
+// posts.js - Posts functionality
+import { api, POSTS_PER_PAGE } from './config.js';
+import { loadCommentCounts, fetchComments, deleteComment } from './api.js';
+import { escapeHtml, formatCommentDisplay, getCurrentUserId } from './utils.js';
+import { checkForNewPublicComments, lastCheckedComments, newCommentNotifications, clearNotificationForPost } from './notifications.js';
+
+// Global variables
+export let currentPage = 1;
+export let allPosts = [];
 
 const token = localStorage.getItem("token");
-
-// Notification system for new public comments
-let lastCheckedComments = JSON.parse(
-  localStorage.getItem("lastCheckedComments") || "{}"
-);
-let newCommentNotifications = new Set();
 
 // Elements
 const postsDiv = document.getElementById("posts");
@@ -18,99 +17,8 @@ const postForm = document.getElementById("createPostForm");
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
 
-// Mobile menu toggle
-document.addEventListener("DOMContentLoaded", () => {
-  const toggleBtn = document.getElementById("navToggle");
-  const menu = document.getElementById("navMenu");
-
-  toggleBtn.addEventListener("click", () => {
-    menu.classList.toggle("hidden");
-    toggleBtn.setAttribute("aria-expanded", !menu.classList.contains("hidden"));
-  });
-});
-
-// REGISTER
-const registerForm = document.getElementById("registerForm");
-if (registerForm) {
-  registerForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const res = await fetch(`${api}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username.value,
-        email: email.value,
-        password: password.value,
-      }),
-    });
-    if (res.ok) window.location.href = "login.html";
-    else alert("Register failed");
-  });
-}
-
-// LOGIN
-const loginForm = document.getElementById("loginForm");
-if (loginForm) {
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const res = await fetch(`${api}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: loginEmail.value,
-        password: loginPassword.value,
-      }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("IsLoggedIn", true);
-      window.location.href = "index.html";
-    } else {
-      alert(data.message);
-    }
-  });
-}
-
-// Check for new public comments
-// Check for new public comments
-async function checkForNewPublicComments() {
-  if (!allPosts.length) return;
-
-  try {
-    for (const post of allPosts) {
-      const comments = await fetchComments(post._id);
-      // Only include comments that are explicitly marked as 'public' or have no source field
-      // Exclude any comments marked as 'dashboard'
-      const publicComments = comments.filter(
-        (c) => c.source === "public" || (!c.source && c.source !== "dashboard")
-      );
-
-      if (publicComments.length > 0) {
-        const lastChecked = lastCheckedComments[post._id] || 0;
-        const newPublicComments = publicComments.filter(
-          (c) => new Date(c.createdAt).getTime() > lastChecked
-        );
-
-        if (newPublicComments.length > 0) {
-          newCommentNotifications.add(post._id);
-          console.log(
-            `New public comment detected for post ${post._id}:`,
-            newPublicComments
-          );
-        }
-      }
-    }
-
-    // Re-render to show notifications
-    renderPage(currentPage);
-  } catch (err) {
-    console.error("Error checking for new comments:", err);
-  }
-}
-
 // Load all posts
-async function loadPosts() {
+export async function loadPosts() {
   try {
     const res = await fetch(`${api}/posts`);
     if (!res.ok) throw new Error("Failed to fetch posts");
@@ -120,139 +28,12 @@ async function loadPosts() {
     renderPage(currentPage);
 
     // Check for new public comments after loading posts
-    await checkForNewPublicComments();
+    await checkForNewPublicComments(allPosts, renderPage, currentPage);
 
     // Set up periodic checking every 120 seconds
-    setInterval(checkForNewPublicComments, 120000);
+    setInterval(() => checkForNewPublicComments(allPosts, renderPage, currentPage), 120000);
   } catch (err) {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
-  }
-}
-
-// Escape HTML
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// ObjectId validation
-function isValidObjectId(id) {
-  return /^[a-f\d]{24}$/i.test(id);
-}
-
-// Load comment counts
-async function loadCommentCounts(postIds) {
-  const validIds = postIds.filter(isValidObjectId);
-  if (validIds.length === 0) return {};
-
-  try {
-    const res = await fetch(
-      `${api}/comments/counts?postIds=${validIds.join(",")}`
-    );
-    if (!res.ok)
-      throw new Error(`Failed to load comment counts: ${res.statusText}`);
-    const data = await res.json();
-    const counts = {};
-    data.forEach(({ _id, count }) => {
-      counts[_id] = count;
-    });
-    return counts;
-  } catch (err) {
-    console.error(err);
-    return {};
-  }
-}
-
-// Fetch comments (updated to show all comments including public ones)
-async function fetchComments(postId) {
-  if (!isValidObjectId(postId)) return [];
-  try {
-    const res = await fetch(`${api}/comments/${postId}`);
-    if (!res.ok) throw new Error("Failed to fetch comments");
-    const comments = await res.json();
-
-    // Sort comments by creation date (newest first) to show recent public comments
-    return comments.sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-  } catch (err) {
-    console.error("Error fetching comments:", err);
-    return [];
-  }
-}
-
-// Helper function to format display name
-function formatCommentDisplay(comment) {
-  let displayName;
-
-  if (!comment.username || comment.username.trim() === "") {
-    displayName = "Anonymous";
-  } else {
-    displayName = escapeHtml(comment.username);
-  }
-
-  return { displayName, badgeHtml: "" };
-}
-
-// // Edit post function
-// async function editPost(postId, title, body) {
-//   try {
-//     const res = await fetch(`${api}/posts/${postId}`, {
-//       method: "PUT",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//       body: JSON.stringify({ title, body }),
-//     });
-
-//     if (!res.ok) throw new Error("Failed to update post");
-
-//     const updatedPost = await res.json();
-
-//     // Update the post in the allPosts array
-//     const postIndex = allPosts.findIndex(p => p._id === postId);
-//     if (postIndex !== -1) {
-//       allPosts[postIndex] = updatedPost;
-//     }
-
-//     // Re-render the current page
-//     await renderPage(currentPage);
-
-//     return updatedPost;
-//   } catch (err) {
-//     console.error("Error updating post:", err);
-//     throw err;
-//   }
-// }
-
-// Delete comment function
-async function deleteComment(commentId, postId) {
-  try {
-    const res = await fetch(`${api}/comments/${commentId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) throw new Error("Failed to delete comment");
-
-    // Refresh the comments for this post
-    const container = document.getElementById(`comments-for-${postId}`);
-    if (container && !container.classList.contains("hidden")) {
-      // Re-load and display comments
-      showCommentsForPost(postId, container);
-    }
-    renderPage(currentPage);
-    return true;
-  } catch (err) {
-    console.error("Error deleting comment:", err);
-    throw err;
   }
 }
 
@@ -303,13 +84,6 @@ async function showCommentsForPost(postId, container) {
   }
 }
 
-// Get current user ID (you'll need to decode this from the token or store it during login)
-function getCurrentUserId() {
-  // This is a simplified version - in a real app, you'd decode the JWT token
-  // For now, we'll assume the userId is stored in localStorage during login
-  return localStorage.getItem("userId");
-}
-
 // Add delete comment listeners
 function addDeleteCommentListeners(container) {
   const deleteButtons = container.querySelectorAll(".delete-comment-btn");
@@ -321,6 +95,13 @@ function addDeleteCommentListeners(container) {
       if (confirm("Are you sure you want to delete this comment?")) {
         try {
           await deleteComment(commentId, postId);
+          // Refresh the comments for this post
+          const container = document.getElementById(`comments-for-${postId}`);
+          if (container && !container.classList.contains("hidden")) {
+            // Re-load and display comments
+            showCommentsForPost(postId, container);
+          }
+          renderPage(currentPage);
         } catch (err) {
           alert("Error deleting comment: " + err.message);
         }
@@ -414,87 +195,12 @@ async function renderPage(page) {
   renderPagination();
 }
 
-// // Add edit post listeners
-// function addEditPostListeners() {
-//   const editButtons = document.querySelectorAll(".edit-post-btn");
-//   editButtons.forEach((btn) => {
-//     btn.addEventListener("click", (e) => {
-//       const postId = e.target.getAttribute("data-postid");
-//       const currentTitle = e.target.getAttribute("data-title");
-//       const currentBody = e.target.getAttribute("data-body");
-
-//       showEditPostModal(postId, currentTitle, currentBody);
-//     });
-//   });
-// }
-
-// // Show edit post modal
-// function showEditPostModal(postId, currentTitle, currentBody) {
-//   // Create modal HTML
-//   const modalHTML = `
-//     <div id="editPostModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-//       <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-//         <h3 class="text-xl font-semibold text-purple-400 mb-4">Edit Post</h3>
-//         <form id="editPostForm">
-//           <div class="mb-4">
-//             <label class="block text-gray-300 text-sm font-bold mb-2">Title</label>
-//             <input type="text" id="editTitle" class="w-full p-2 rounded bg-gray-700 text-white" value="${currentTitle}" required>
-//           </div>
-//           <div class="mb-4">
-//             <label class="block text-gray-300 text-sm font-bold mb-2">Body</label>
-//             <textarea id="editBody" class="w-full p-2 rounded bg-gray-700 text-white" rows="4" required>${currentBody}</textarea>
-//           </div>
-//           <div class="flex justify-end space-x-2">
-//             <button type="button" id="cancelEdit" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
-//             <button type="submit" class="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white">Save Changes</button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   `;
-
-//   // Add modal to body
-//   document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-//   const modal = document.getElementById('editPostModal');
-//   const form = document.getElementById('editPostForm');
-//   const cancelBtn = document.getElementById('cancelEdit');
-
-//   // Close modal function
-//   const closeModal = () => {
-//     modal.remove();
-//   };
-
-//   // Cancel button
-//   cancelBtn.addEventListener('click', closeModal);
-
-//   // Click outside modal to close
-//   modal.addEventListener('click', (e) => {
-//     if (e.target === modal) {
-//       closeModal();
-//     }
-//   });
-
-//   // Form submission
-//   form.addEventListener('submit', async (e) => {
-//     e.preventDefault();
-
-//     const title = document.getElementById('editTitle').value.trim();
-//     const body = document.getElementById('editBody').value.trim();
-
-//     if (!title || !body) {
-//       alert('Title and body are required.');
-//       return;
-//     }
-
-//     try {
-//       await editPost(postId, title, body);
-//       closeModal();
-//     } catch (err) {
-//       alert('Error updating post: ' + err.message);
-//     }
-//   });
-// }
+// Add edit post listeners
+function addEditPostListeners() {
+  // Placeholder - original code has this commented out
+  const editButtons = document.querySelectorAll(".edit-post-btn");
+  // Original functionality commented out in source
+}
 
 // Toggle Read More
 function addToggleListeners() {
@@ -543,12 +249,7 @@ function addShowCommentsListeners() {
 
       // Clear notification for this post when viewing comments
       if (hadNewComments) {
-        newCommentNotifications.delete(postId);
-        lastCheckedComments[postId] = Date.now();
-        localStorage.setItem(
-          "lastCheckedComments",
-          JSON.stringify(lastCheckedComments)
-        );
+        clearNotificationForPost(postId);
 
         // Update just this post's styling without full re-render
         const postElement = btn.closest("article");
@@ -681,56 +382,36 @@ function renderPagination() {
 }
 
 // Create post form submit
-if (postForm) {
-  postForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const title = titleInput.value.trim();
-    const body = bodyInput.value.trim();
-    if (!title || !body) {
-      alert("Title and body are required.");
-      return;
-    }
+export function initializeCreatePostForm() {
+  if (postForm) {
+    postForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      const body = bodyInput.value.trim();
+      if (!title || !body) {
+        alert("Title and body are required.");
+        return;
+      }
 
-    try {
-      const res = await fetch(`${api}/posts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, body }),
-      });
-      if (!res.ok) throw new Error("Failed to create post");
+      try {
+        const res = await fetch(`${api}/posts`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title, body }),
+        });
+        if (!res.ok) throw new Error("Failed to create post");
 
-      const newPost = await res.json();
-      allPosts.unshift(newPost);
-      renderPage(1);
-      titleInput.value = "";
-      bodyInput.value = "";
-    } catch (err) {
-      alert("Error creating post: " + err.message);
-    }
-  });
+        const newPost = await res.json();
+        allPosts.unshift(newPost);
+        renderPage(1);
+        titleInput.value = "";
+        bodyInput.value = "";
+      } catch (err) {
+        alert("Error creating post: " + err.message);
+      }
+    });
+  }
 }
-
-function updateDateTime() {
-  const now = new Date();
-  const options = {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  };
-  const time = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const date = now.toLocaleDateString(undefined, options);
-  document.getElementById("datetime").textContent = `${date} • ${time}`;
-}
-
-updateDateTime();
-setInterval(updateDateTime, 1000);
-
-// Initial load
-if (postsDiv) loadPosts();
