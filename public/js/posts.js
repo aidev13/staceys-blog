@@ -3,6 +3,7 @@ import { api, POSTS_PER_PAGE } from './config.js';
 import { loadCommentCounts, fetchComments, deleteComment } from './api.js';
 import { escapeHtml, formatCommentDisplay, getCurrentUserId } from './utils.js';
 import { checkForNewPublicComments, lastCheckedComments, newCommentNotifications, clearNotificationForPost } from './notifications.js';
+import { highlightNewCommentsInContainer } from './highlight.js';
 
 // Global variables
 export let currentPage = 1;
@@ -249,6 +250,9 @@ function addShowCommentsListeners() {
 
       // Clear notification for this post when viewing comments
       if (hadNewComments) {
+        // Get the last checked time before clearing notifications
+        const lastChecked = lastCheckedComments[postId] || 0;
+        
         clearNotificationForPost(postId);
 
         // Update just this post's styling without full re-render
@@ -265,12 +269,20 @@ function addShowCommentsListeners() {
             if (notificationText) notificationText.remove();
           }
         }
-      }
 
-      // Show comments
-      container.classList.remove("hidden");
-      e.target.textContent = "Hide Comments";
-      await showCommentsForPost(postId, container);
+        // Show comments first
+        container.classList.remove("hidden");
+        e.target.textContent = "Hide Comments";
+        await showCommentsForPost(postId, container);
+
+        // Then highlight new comments
+        highlightNewCommentsInContainer(container, lastChecked);
+      } else {
+        // Show comments normally if no new notifications
+        container.classList.remove("hidden");
+        e.target.textContent = "Hide Comments";
+        await showCommentsForPost(postId, container);
+      }
     });
   });
 }
