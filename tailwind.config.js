@@ -15,5 +15,6 @@ module.exports = {
     "bg-red-500", 
     "hover:bg-red-600",
     "ml-2",
+    "mt-7",
   ],
 };

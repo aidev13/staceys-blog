@@ -574,7 +574,6 @@ function addShowCommentsListeners() {
   });
 }
 
-// Submit comment (removed source functionality)
 // Submit comment (updated to prevent self-notifications)
 function addCommentListener(container, postId) {
   const form = container.querySelector(".comment-form");
