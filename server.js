@@ -41,6 +41,8 @@ app.use(express.static('public'))
 
 // Serve your main HTML file
 app.get('/', (req, res) => {
+  console.log('ROOT ROUTE HIT - Attempting to serve public.html')
+  console.log('File path:', path.join(__dirname, 'public', 'public.html'))
   res.sendFile(path.join(__dirname, 'public', 'public.html'))
 })
 
