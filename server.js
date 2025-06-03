@@ -36,15 +36,16 @@ app.use(cors({
 app.use(express.json())
 app.use('/dist', express.static('dist'))
 
-// Serve static files
-app.use(express.static('public'))
-
-// Serve your main HTML file
+// Define your root route BEFORE static middleware
 app.get('/', (req, res) => {
   console.log('ROOT ROUTE HIT - Attempting to serve public.html')
   console.log('File path:', path.join(__dirname, 'public', 'public.html'))
   res.sendFile(path.join(__dirname, 'public', 'public.html'))
 })
+
+// Serve static files AFTER the root route
+// This prevents Express from automatically serving index.html
+app.use(express.static('public'))
 
 // Routes
 app.use('/api/posts', postRoutes)
