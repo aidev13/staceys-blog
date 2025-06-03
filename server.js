@@ -17,18 +17,29 @@ dotenv.config()
 
 const app = express()
 
-// Middleware
-app.use(cors())
+// Middleware - Fixed CORS to allow Live Server
+app.use(cors({
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500', 
+    'http://localhost:5501',
+    'http://127.0.0.1:5501',  // Your Live Server port
+    'http://localhost:8080',
+    'http://127.0.0.1:8080'
+  ],
+  credentials: true
+}))
 app.use(express.json())
 app.use('/dist', express.static('dist'))
 
-// Serve static files (if you have HTML files in a public folder)
+// Serve static files
 app.use(express.static('public'))
 
 // Serve your main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
-  // Or wherever your HTML file is located
 })
 
 // Routes
@@ -37,10 +48,14 @@ app.use('/api/comments', commentRoutes)
 app.use('/api/auth', authRoutes)
 
 // DB Connection & Server
-mongoose.connect(process.env.MONGO_URI)
+const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI
+const port = process.env.PORT || 3000
+
+mongoose.connect(mongoUri)
   .then(() => {
-    app.listen(process.env.PORT, () =>
-      console.log(`🚀 Server running on port ${process.env.PORT}`)
-    )
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`)
+      console.log(`🗄️  Database: ${mongoUri.includes('localhost') ? 'Local MongoDB' : 'MongoDB Atlas'}`)
+    })
   })
   .catch(err => console.error('❌ MongoDB connection error:', err))
