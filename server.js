@@ -41,7 +41,7 @@ app.use(express.static('public'))
 
 // Serve your main HTML file
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+  res.sendFile(path.join(__dirname, 'public', 'public.html'))
 })
 
 // Routes
