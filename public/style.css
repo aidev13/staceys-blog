@@ -1,0 +1,43 @@
+.parallax-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 120%; /* Slightly larger for movement */
+  background-image: url('./img/mobile_bg.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  will-change: transform;
+}
+
+.parallax-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3); /* Adjust opacity as needed */
+  z-index: 1;
+}
+
+/* Responsive background images */
+@media (max-width: 768px) {
+  .parallax-background {
+    background-image: url('./img/mobile_bg.svg');
+  }
+}
+
+/* @media (min-width: 769px) and (max-width: 1024px) {
+  .parallax-background {
+    background-image: url('tablet-bg.webp');
+  }
+}
+
+@media (min-width: 1025px) {
+  .parallax-background {
+    background-image: url('desktop-bg.webp');
+  }
+} */

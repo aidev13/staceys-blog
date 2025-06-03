@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A NICU chronology</title>
     <link href="/dist/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        /* Apply transform on scroll with JavaScript */
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('.parallax-background');
+            const speed = scrolled * 0.5; /* Adjust speed (0.5 = half scroll speed) */
+            parallax.style.transform = `translateY(${speed}px)`;
+        });
+    </script>
 </head>
 
 <body class="font-sans">
