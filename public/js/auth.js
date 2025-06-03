@@ -40,7 +40,7 @@ export function initializeLoginForm() {
       if (res.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("IsLoggedIn", true);
-        window.location.href = "index.html";
+        window.location.href = "./index.html";
       } else {
         alert(data.message);
       }
