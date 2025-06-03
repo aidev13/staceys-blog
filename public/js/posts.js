@@ -31,13 +31,6 @@ export async function loadPosts() {
     // Check for new public comments after loading posts
     await checkForNewPublicComments(allPosts, renderPage, currentPage);
 
-    // Set up periodic checking every 120 seconds
-    setInterval(() => checkForNewPublicComments(allPosts, renderPage, currentPage), 120000);
-  } catch (err) {
-    postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
-  }
-}
-
 // Helper function to show comments for a specific post
 async function showCommentsForPost(postId, container) {
   container.innerHTML = `<p class="text-gray-400 text-sm">Loading comments...</p>`;
