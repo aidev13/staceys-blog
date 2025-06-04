@@ -18,7 +18,6 @@ const postForm = document.getElementById("createPostForm");
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
 
-// Load all posts
 export async function loadPosts() {
   try {
     const res = await fetch(`${api}/posts`);
@@ -27,6 +26,14 @@ export async function loadPosts() {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
     renderPage(currentPage);
+
+    // Check for new public comments after loading posts
+    await checkForNewPublicComments(allPosts, renderPage, currentPage);
+  } catch (err) {
+    postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
+  }
+}
+
 
     // Check for new public comments after loading posts
     await checkForNewPublicComments(allPosts, renderPage, currentPage);
