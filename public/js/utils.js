@@ -34,17 +34,44 @@ export function getCurrentUserId() {
   return localStorage.getItem("userId");
 }
 
-// Mobile menu toggle
+// Mobile menu toggle - FIXED VERSION
 export function initializeMobileMenu() {
-  document.addEventListener("DOMContentLoaded", () => {
-    const toggleBtn = document.getElementById("navToggle");
-    const menu = document.getElementById("navMenu");
+  const toggleBtn = document.getElementById("navToggle");
+  const menu = document.getElementById("navMenu");
 
-    toggleBtn.addEventListener("click", () => {
+  if (toggleBtn && menu) {
+    // Add click event listener
+    toggleBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       menu.classList.toggle("hidden");
       toggleBtn.setAttribute("aria-expanded", !menu.classList.contains("hidden"));
     });
-  });
+
+    // Add touch event for better mobile support
+    toggleBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+      toggleBtn.setAttribute("aria-expanded", !menu.classList.contains("hidden"));
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!toggleBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+        toggleBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // Close menu when touching outside on mobile
+    document.addEventListener("touchstart", (e) => {
+      if (!toggleBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+        toggleBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
 }
 
 // DateTime functions
@@ -61,7 +88,10 @@ export function updateDateTime() {
     minute: "2-digit",
   });
   const date = now.toLocaleDateString(undefined, options);
-  document.getElementById("datetime").textContent = `${date} • ${time}`;
+  const datetimeElement = document.getElementById("datetime");
+  if (datetimeElement) {
+    datetimeElement.textContent = `${date} • ${time}`;
+  }
 }
 
 export function startDateTimeUpdates() {
