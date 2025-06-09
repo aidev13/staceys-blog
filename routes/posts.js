@@ -21,6 +21,7 @@ router.post("/", verifyToken, async (req, res) => {
     const newPost = new Post({
       ...req.body,
       author: req.user.username, // from token
+      userId: req.user._id, // Store userId for ownership checks
       likes: [] // Initialize likes array for new posts
     });
     const saved = await newPost.save();
@@ -30,7 +31,75 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-// ===== NEW LIKE FUNCTIONALITY =====
+// ===== NEW EDIT/DELETE ENDPOINTS =====
+
+// PUT edit a post (auth required + ownership check)
+router.put("/:postId", verifyToken, async (req, res) => {
+  const { postId } = req.params;
+  const { title, body } = req.body;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    return res.status(400).json({ error: "Invalid postId" });
+  }
+
+  if (!title || !body) {
+    return res.status(400).json({ error: "Title and body are required" });
+  }
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check ownership
+    if (post.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "You can only edit your own posts" });
+    }
+
+    // Update the post
+    post.title = title;
+    post.body = body;
+    post.updatedAt = new Date();
+
+    const updatedPost = await post.save();
+    res.json(updatedPost);
+  } catch (err) {
+    console.error("Error editing post:", err);
+    res.status(500).json({ error: "Failed to edit post" });
+  }
+});
+
+// DELETE a post (auth required + ownership check)
+router.delete("/:postId", verifyToken, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(postId)) {
+    return res.status(400).json({ error: "Invalid postId" });
+  }
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check ownership
+    if (post.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "You can only delete your own posts" });
+    }
+
+    await Post.findByIdAndDelete(postId);
+    res.json({ message: "Post deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting post:", err);
+    res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+// ===== EXISTING LIKE FUNCTIONALITY =====
 
 // POST toggle like on a post
 router.post("/:postId/like", verifyToken, async (req, res) => {

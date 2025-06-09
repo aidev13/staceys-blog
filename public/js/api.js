@@ -62,3 +62,45 @@ export async function deleteComment(commentId, postId) {
     throw err;
   }
 }
+
+// ===== NEW POST EDIT/DELETE FUNCTIONS =====
+
+// Edit post function
+export async function editPost(postId, title, body) {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`${api}/posts/${postId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, body }),
+    });
+
+    if (!res.ok) throw new Error("Failed to edit post");
+    return await res.json();
+  } catch (err) {
+    console.error("Error editing post:", err);
+    throw err;
+  }
+}
+
+// Delete post function
+export async function deletePost(postId) {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`${api}/posts/${postId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to delete post");
+    return true;
+  } catch (err) {
+    console.error("Error deleting post:", err);
+    throw err;
+  }
+}

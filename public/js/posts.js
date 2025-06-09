@@ -1,6 +1,6 @@
 // posts.js - Posts functionality
 import { api, POSTS_PER_PAGE } from './config.js';
-import { loadCommentCounts, fetchComments, deleteComment } from './api.js';
+import { loadCommentCounts, fetchComments, deleteComment, editPost, deletePost } from './api.js';
 import { escapeHtml, formatCommentDisplay, getCurrentUserId } from './utils.js';
 import { checkForNewPublicComments, lastCheckedComments, newCommentNotifications, clearNotificationForPost } from './notifications.js';
 import { highlightNewCommentsInContainer } from './highlight.js';
@@ -33,10 +33,6 @@ export async function loadPosts() {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
   }
 }
-
-
-    // Check for new public comments after loading posts
-    await checkForNewPublicComments(allPosts, renderPage, currentPage);
 
 // Helper function to show comments for a specific post
 async function showCommentsForPost(postId, container) {
@@ -112,7 +108,7 @@ function addDeleteCommentListeners(container) {
   });
 }
 
-// Render posts (updated to include edit button)
+// Render posts (updated to include edit and delete buttons)
 async function renderPage(page) {
   currentPage = page;
   const start = (page - 1) * POSTS_PER_PAGE;
@@ -136,15 +132,17 @@ async function renderPage(page) {
         ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>'
         : "";
 
-      // Add edit button if user is logged in and it's their post
-      const editButton =
-        token && post.userId === getCurrentUserId()
-          ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${
-              post._id
-            }" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(
-              post.body
-            )}">Edit</button>`
-          : "";
+      // Add edit and delete buttons if user is logged in and it's their post
+      const currentUserId = getCurrentUserId();
+      const isOwner = token && post.userId === currentUserId;
+      
+      const editButton = isOwner
+        ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${post._id}" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(post.body)}">Edit</button>`
+        : "";
+      
+      const deleteButton = isOwner
+        ? `<button class="delete-post-btn text-sm text-red-400 hover:text-red-300 ml-2" data-postid="${post._id}">Delete</button>`
+        : "";
 
       return `
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${
@@ -158,6 +156,7 @@ async function renderPage(page) {
                 : ""
             }
             ${editButton}
+            ${deleteButton}
           </h3>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
             post.body
@@ -194,14 +193,170 @@ async function renderPage(page) {
   addToggleListeners();
   addShowCommentsListeners();
   addEditPostListeners();
+  addDeletePostListeners();
   renderPagination();
 }
 
+// ===== NEW POST EDIT/DELETE FUNCTIONALITY =====
+
 // Add edit post listeners
 function addEditPostListeners() {
-  // Placeholder - original code has this commented out
   const editButtons = document.querySelectorAll(".edit-post-btn");
-  // Original functionality commented out in source
+  editButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const postId = e.target.getAttribute("data-postid");
+      const currentTitle = e.target.getAttribute("data-title");
+      const currentBody = e.target.getAttribute("data-body");
+      
+      showEditModal(postId, currentTitle, currentBody);
+    });
+  });
+}
+
+// Add delete post listeners
+function addDeletePostListeners() {
+  const deleteButtons = document.querySelectorAll(".delete-post-btn");
+  deleteButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const postId = e.target.getAttribute("data-postid");
+      
+      if (confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+        try {
+          await deletePost(postId);
+          
+          // Remove post from allPosts array
+          allPosts = allPosts.filter(post => post._id !== postId);
+          
+          // Re-render the page
+          renderPage(currentPage);
+          
+          // Show success message
+          showSuccessMessage("Post deleted successfully!");
+        } catch (err) {
+          alert("Error deleting post: " + err.message);
+        }
+      }
+    });
+  });
+}
+
+// Show edit modal
+function showEditModal(postId, currentTitle, currentBody) {
+  // Create modal HTML
+  const modalHTML = `
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-xl font-semibold text-purple-400 mb-4">Edit Post</h3>
+        <form id="editPostForm">
+          <div class="mb-4">
+            <label for="editTitle" class="block mb-2 font-medium text-gray-300">Title</label>
+            <input type="text" id="editTitle" value="${escapeHtml(currentTitle)}" required
+              class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition" />
+          </div>
+          <div class="mb-6">
+            <label for="editBody" class="block mb-2 font-medium text-gray-300">Content</label>
+            <textarea id="editBody" rows="5" required
+              class="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition">${escapeHtml(currentBody)}</textarea>
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-md transition">
+              Save Changes
+            </button>
+            <button type="button" id="cancelEdit" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-md transition">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  // Add modal to page
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Add event listeners
+  const modal = document.getElementById('editModal');
+  const editForm = document.getElementById('editPostForm');
+  const cancelBtn = document.getElementById('cancelEdit');
+  const editTitle = document.getElementById('editTitle');
+  const editBody = document.getElementById('editBody');
+  
+  // Focus on title input
+  editTitle.focus();
+  editTitle.select();
+  
+  // Cancel button
+  cancelBtn.addEventListener('click', () => {
+    modal.remove();
+  });
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+  
+  // Handle form submission
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const newTitle = editTitle.value.trim();
+    const newBody = editBody.value.trim();
+    
+    if (!newTitle || !newBody) {
+      alert('Title and content are required.');
+      return;
+    }
+    
+    try {
+      const updatedPost = await editPost(postId, newTitle, newBody);
+      
+      // Update the post in allPosts array
+      const postIndex = allPosts.findIndex(post => post._id === postId);
+      if (postIndex !== -1) {
+        allPosts[postIndex] = { ...allPosts[postIndex], ...updatedPost };
+      }
+      
+      // Re-render the page
+      renderPage(currentPage);
+      
+      // Close modal
+      modal.remove();
+      
+      // Show success message
+      showSuccessMessage("Post updated successfully!");
+    } catch (err) {
+      alert("Error updating post: " + err.message);
+    }
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function escapeHandler(e) {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  });
+}
+
+// Show success message
+function showSuccessMessage(message) {
+  const successHTML = `
+    <div id="successMessage" class="fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+      ${message}
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', successHTML);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    const successMsg = document.getElementById('successMessage');
+    if (successMsg) {
+      successMsg.remove();
+    }
+  }, 3000);
 }
 
 // Toggle Read More
