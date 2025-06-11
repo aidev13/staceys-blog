@@ -11,12 +11,121 @@ export let allPosts = [];
 
 const token = localStorage.getItem("token");
 
+// Draft auto-save variables
+let draftSaveTimeout;
+const DRAFT_SAVE_DELAY = 500; // 500ms debounce
+const DRAFT_TITLE_KEY = "draftPostTitle";
+const DRAFT_BODY_KEY = "draftPostBody";
+
 // Elements
 const postsDiv = document.getElementById("posts");
 const paginationDiv = document.getElementById("paginationControls");
 const postForm = document.getElementById("createPostForm");
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
+
+// Draft auto-save functions
+function saveDraftToStorage() {
+  if (titleInput && bodyInput) {
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+    
+    if (title || body) {
+      localStorage.setItem(DRAFT_TITLE_KEY, title);
+      localStorage.setItem(DRAFT_BODY_KEY, body);
+      showDraftSavedIndicator();
+    } else {
+      // Clear draft if both fields are empty
+      clearDraftFromStorage();
+    }
+  }
+}
+
+function debouncedSaveDraft() {
+  clearTimeout(draftSaveTimeout);
+  draftSaveTimeout = setTimeout(saveDraftToStorage, DRAFT_SAVE_DELAY);
+}
+
+function loadDraftFromStorage() {
+  if (titleInput && bodyInput) {
+    const savedTitle = localStorage.getItem(DRAFT_TITLE_KEY);
+    const savedBody = localStorage.getItem(DRAFT_BODY_KEY);
+    
+    if (savedTitle) titleInput.value = savedTitle;
+    if (savedBody) bodyInput.value = savedBody;
+    
+    // Show indicator if there's a draft
+    if (savedTitle || savedBody) {
+      showDraftLoadedIndicator();
+    }
+  }
+}
+
+function clearDraftFromStorage() {
+  localStorage.removeItem(DRAFT_TITLE_KEY);
+  localStorage.removeItem(DRAFT_BODY_KEY);
+  hideDraftIndicator();
+}
+
+function showDraftSavedIndicator() {
+  let indicator = document.getElementById("draftIndicator");
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = "draftIndicator";
+    indicator.className = "text-xs text-green-400 mt-1";
+    // Insert after the body input
+    if (bodyInput && bodyInput.parentNode) {
+      bodyInput.parentNode.insertBefore(indicator, bodyInput.nextSibling);
+    }
+  }
+  indicator.textContent = "Draft saved";
+  indicator.style.opacity = "1";
+  
+  // Fade out after 2 seconds
+  setTimeout(() => {
+    if (indicator) {
+      indicator.style.opacity = "0.5";
+    }
+  }, 2000);
+}
+
+function showDraftLoadedIndicator() {
+  let indicator = document.getElementById("draftIndicator");
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = "draftIndicator";
+    indicator.className = "text-xs text-blue-400 mt-1";
+    // Insert after the body input
+    if (bodyInput && bodyInput.parentNode) {
+      bodyInput.parentNode.insertBefore(indicator, bodyInput.nextSibling);
+    }
+  }
+  indicator.textContent = "Draft restored";
+  indicator.style.opacity = "1";
+  
+  // Fade out after 3 seconds
+  setTimeout(() => {
+    if (indicator) {
+      indicator.style.opacity = "0.5";
+    }
+  }, 3000);
+}
+
+function hideDraftIndicator() {
+  const indicator = document.getElementById("draftIndicator");
+  if (indicator) {
+    indicator.remove();
+  }
+}
+
+function setupDraftAutoSave() {
+  if (titleInput) {
+    titleInput.addEventListener("input", debouncedSaveDraft);
+  }
+  if (bodyInput) {
+    bodyInput.addEventListener("input", debouncedSaveDraft);
+  }
+}
 
 export async function loadPosts() {
   try {
@@ -33,10 +142,6 @@ export async function loadPosts() {
     postsDiv.innerHTML = `<p class="text-red-500">Error loading posts: ${err.message}</p>`;
   }
 }
-
-
-    // Check for new public comments after loading posts
-    await checkForNewPublicComments(allPosts, renderPage, currentPage);
 
 // Helper function to show comments for a specific post
 async function showCommentsForPost(postId, container) {
@@ -452,9 +557,15 @@ function renderPagination() {
   });
 }
 
-// Create post form submit
+// Create post form submit (UPDATED with draft clearing)
 export function initializeCreatePostForm() {
   if (postForm) {
+    // Load any existing draft when the form is initialized
+    loadDraftFromStorage();
+    
+    // Setup auto-save functionality
+    setupDraftAutoSave();
+    
     postForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const title = titleInput.value.trim();
@@ -480,6 +591,10 @@ export function initializeCreatePostForm() {
         renderPage(1);
         titleInput.value = "";
         bodyInput.value = "";
+        
+        // Clear the draft from localStorage after successful post creation
+        clearDraftFromStorage();
+        
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         alert("Error creating post: " + err.message);
