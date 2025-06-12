@@ -73,6 +73,16 @@ function createElementWithText(tagName, text, className = '') {
   return element;
 }
 
+// Special helper for preserving text formatting (line breaks, paragraphs, etc.)
+function createElementWithFormattedText(tagName, text, className = '') {
+  const element = document.createElement(tagName);
+  element.textContent = text;
+  if (className) element.className = className;
+  // Preserve whitespace and line breaks like in a textarea
+  element.style.whiteSpace = 'pre-wrap';
+  return element;
+}
+
 function createPostElement(post, commentCount) {
   const postDiv = document.createElement('div');
   postDiv.className = 'bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hover:border-purple-500 transition-colors duration-300';
@@ -100,7 +110,7 @@ function createPostElement(post, commentCount) {
 
   // Preview text
   const previewText = post.body.split(". ").slice(0, 2).join(". ") + "...";
-  const previewP = createElementWithText('p', previewText, 'text-gray-300 leading-relaxed mb-4');
+  const previewP = createElementWithFormattedText('p', previewText, 'text-gray-300 leading-relaxed mb-4');
   previewP.id = `preview-${post._id}`;
 
   // Footer section
@@ -314,7 +324,7 @@ function createCommentElement(comment) {
   headerDiv.appendChild(separator);
   headerDiv.appendChild(timeSpan);
 
-  const textP = createElementWithText('p', comment.text, '');
+  const textP = createElementWithFormattedText('p', comment.text, '');
 
   commentDiv.appendChild(headerDiv);
   commentDiv.appendChild(textP);
@@ -347,7 +357,7 @@ async function expandPost(postId) {
     const titleH3 = createElementWithText('h3', post.title, 'text-2xl font-semibold text-purple-400 mb-4');
     modalBody.appendChild(titleH3);
 
-    const bodyP = createElementWithText('p', post.body, 'text-gray-300 mb-4');
+    const bodyP = createElementWithFormattedText('p', post.body, 'text-gray-300 mb-4');
     modalBody.appendChild(bodyP);
 
     const commentTimeFormat = (date) =>

@@ -80,6 +80,16 @@ function createElementWithText(tagName, text, className = '') {
   return element;
 }
 
+// Special helper for preserving text formatting (line breaks, paragraphs, etc.)
+function createElementWithFormattedText(tagName, text, className = '') {
+  const element = document.createElement(tagName);
+  element.textContent = text;
+  if (className) element.className = className;
+  // Preserve whitespace and line breaks like in a textarea
+  element.style.whiteSpace = 'pre-wrap';
+  return element;
+}
+
 // Safe HTML creation for structured content
 function createCommentElement(comment, postId, canDelete = false) {
   const commentDiv = document.createElement('div');
@@ -102,7 +112,7 @@ function createCommentElement(comment, postId, canDelete = false) {
     headerP.appendChild(deleteButton);
   }
   
-  const textP = createElementWithText('p', comment.text, 'text-gray-300 text-sm');
+  const textP = createElementWithFormattedText('p', comment.text, 'text-gray-300 text-sm');
   const timeP = createElementWithText('p', new Date(comment.createdAt).toLocaleString(), 'text-xs text-gray-500');
   
   commentDiv.appendChild(headerP);
@@ -431,7 +441,7 @@ function createPostElement(post, index, commentCounts) {
   article.appendChild(headerDiv);
   
   // Post body
-  const bodyP = createElementWithText('p', previewText, 'text-gray-300 mb-2 post-body');
+  const bodyP = createElementWithFormattedText('p', previewText, 'text-gray-300 mb-2 post-body');
   bodyP.setAttribute('data-full', post.body);
   bodyP.setAttribute('data-index', index.toString());
   article.appendChild(bodyP);
@@ -666,6 +676,7 @@ function addToggleListeners() {
 
       if (e.target.textContent === "Read more") {
         postBody.textContent = fullText;
+        postBody.style.whiteSpace = 'pre-wrap'; // Preserve formatting for full text
         e.target.textContent = "Show less";
       } else {
         const previewLimit = 75;
@@ -673,6 +684,7 @@ function addToggleListeners() {
           ? fullText.slice(0, previewLimit) + "..."
           : fullText;
         postBody.textContent = previewText;
+        postBody.style.whiteSpace = 'pre-wrap'; // Preserve formatting for preview text
         e.target.textContent = "Read more";
       }
     });
