@@ -258,7 +258,7 @@ async function renderPage(page) {
       const currentUsername = getCurrentUsername();
       const editButton =
         token && post.author === currentUsername
-          ? `<button class="edit-post-btn bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded text-sm font-medium transition-colors duration-200" data-postid="${
+          ? `<button class="edit-post-btn text-yellow px-3 py-1 rounded text-sm font-medium transition-colors duration-200" data-postid="${
               post._id
             }" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(
               post.body
@@ -343,7 +343,7 @@ function showEditForm(postId, currentTitle, currentBody) {
   const editForm = document.createElement('div');
   editForm.className = 'edit-form bg-gray-800 p-6 rounded-lg shadow-md mb-6 border border-gray-700';
   editForm.innerHTML = `
-    <h3 class="text-xl font-semibold text-purple-400 mb-6">✏️ Edit Post</h3>
+    <h3 class="text-xl font-semibold text-purple-400 mb-6">Edit Post</h3>
     <form class="edit-post-form space-y-6">
       <div>
         <label for="edit-title-${postId}" class="block text-sm font-medium text-gray-300 mb-2">Post Title</label>
@@ -624,7 +624,8 @@ function addCommentListener(container, postId) {
   });
 }
 
-// Pagination controls (ULTRA COMPACT - max 2 pages, matching public style)
+// PAGINATION RENDER
+
 function renderPagination() {
   const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
   if (totalPages <= 1) {
@@ -641,68 +642,64 @@ function renderPagination() {
     </button>
   `;
 
-  // Ultra compact pagination - max 2 pages
-  let startPage, endPage;
-  
-  if (totalPages <= 2) {
-    // Show all if 2 or fewer
-    startPage = 1;
-    endPage = totalPages;
+  // Maximum 4 page buttons with smart layout (matching public pagination)
+  if (totalPages <= 4) {
+    // Show all pages if 4 or fewer
+    for (let i = 1; i <= totalPages; i++) {
+      buttonsHTML += `
+        <button data-page="${i}"
+          class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+            currentPage === i
+              ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+              : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
+          }">
+          ${i}
+        </button>
+      `;
+    }
   } else {
-    // Always show exactly 2 pages
-    if (currentPage === 1) {
-      // At start: [1] [2] ... last
-      startPage = 1;
-      endPage = 2;
-    } else if (currentPage === totalPages) {
-      // At end: 1 ... [last-1] [last]
-      startPage = totalPages - 1;
-      endPage = totalPages;
+    // More than 4 pages - show strategic 4 pages
+    let pagesToShow = [];
+    
+    if (currentPage <= 2) {
+      // Near start: [1] [2] [...] [last]
+      pagesToShow = [1, 2];
+      if (totalPages > 3) {
+        pagesToShow.push(totalPages);
+      }
+    } else if (currentPage >= totalPages - 1) {
+      // Near end: [1] [...] [last-1] [last]
+      pagesToShow = [1, totalPages - 1, totalPages];
     } else {
-      // In middle: 1 ... [current] [current+1] ... last
-      startPage = currentPage;
-      endPage = Math.min(totalPages, currentPage + 1);
+      // In middle: [1] [current] [...] [last] or [1] [...] [current] [last]
+      pagesToShow = [1, currentPage, totalPages];
     }
-  }
-
-  // Add first page if not in range
-  if (startPage > 1) {
-    buttonsHTML += `
-      <button data-page="1"
-        class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500">
-        1
-      </button>
-    `;
-    if (startPage > 2) {
-      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
+    
+    // Remove duplicates and sort
+    pagesToShow = [...new Set(pagesToShow)].sort((a, b) => a - b);
+    
+    // Render the pages with ellipsis
+    for (let i = 0; i < pagesToShow.length; i++) {
+      const page = pagesToShow[i];
+      const nextPage = pagesToShow[i + 1];
+      
+      // Add the page button
+      buttonsHTML += `
+        <button data-page="${page}"
+          class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+            currentPage === page
+              ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+              : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
+          }">
+          ${page}
+        </button>
+      `;
+      
+      // Add ellipsis if there's a gap to the next page
+      if (nextPage && nextPage > page + 1) {
+        buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
+      }
     }
-  }
-
-  // Add the 2 main pages
-  for (let i = startPage; i <= endPage; i++) {
-    buttonsHTML += `
-      <button data-page="${i}"
-        class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
-          currentPage === i 
-            ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500" 
-            : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
-        }">
-        ${i}
-      </button>
-    `;
-  }
-
-  // Add last page if not in range
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
-    }
-    buttonsHTML += `
-      <button data-page="${totalPages}"
-        class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500">
-        ${totalPages}
-      </button>
-    `;
   }
 
   buttonsHTML += `
@@ -726,7 +723,6 @@ function renderPagination() {
     });
   });
 }
-
 // Create post form submit (UPDATED with draft clearing)
 export function initializeCreatePostForm() {
   if (postForm) {

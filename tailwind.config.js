@@ -25,6 +25,7 @@ module.exports = {
     "text-sm",
     "font-medium",
     "transition-colors",
-    "duration-200"
+    "duration-200",
+    "text-yellow"
   ],
 };
