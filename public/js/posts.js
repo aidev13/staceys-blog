@@ -490,6 +490,10 @@ function addEditPostListeners() {
   const editButtons = document.querySelectorAll(".edit-post-btn");
   editButtons.forEach((btn) => {
     btn.addEventListener("click", (e) => {
+      // Prevent event bubbling that might interfere with other listeners
+      e.preventDefault();
+      e.stopPropagation();
+      
       const postId = e.target.getAttribute("data-postid");
       const title = e.target.getAttribute("data-title");
       const body = e.target.getAttribute("data-body");
@@ -587,7 +591,11 @@ function showEditForm(postId, currentTitle, currentBody) {
   postElement.parentNode.insertBefore(editForm, postElement);
   
   form.addEventListener('submit', (e) => handleEditSubmit(e, postId, editForm, postElement));
-  cancelBtn.addEventListener('click', () => cancelEdit(editForm, postElement));
+  cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cancelEdit(editForm, postElement);
+  });
   
   titleInput.focus();
 }
@@ -666,6 +674,10 @@ function addToggleListeners() {
   const buttons = document.querySelectorAll(".toggle-btn");
   buttons.forEach((button) => {
     button.addEventListener("click", (e) => {
+      // Prevent event bubbling that might interfere with other listeners
+      e.preventDefault();
+      e.stopPropagation();
+      
       const idx = e.target.getAttribute("data-index");
       const postBody = document.querySelector(`.post-body[data-index="${idx}"]`);
       
@@ -696,6 +708,10 @@ function addShowCommentsListeners() {
   const buttons = document.querySelectorAll(".show-comments-btn");
   buttons.forEach((btn) => {
     btn.addEventListener("click", async (e) => {
+      // Prevent event bubbling that might interfere with other listeners
+      e.preventDefault();
+      e.stopPropagation();
+      
       const postId = e.target.getAttribute("data-postid");
       if (!postId) return;
       
@@ -891,6 +907,10 @@ function renderPagination() {
   // Add event listeners securely
   paginationContainer.querySelectorAll("button[data-page]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
+      // Prevent event bubbling and default behavior
+      e.preventDefault();
+      e.stopPropagation();
+      
       const pageStr = btn.getAttribute("data-page");
       const page = parseInt(pageStr, 10);
       

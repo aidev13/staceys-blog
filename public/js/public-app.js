@@ -121,7 +121,11 @@ function createPostElement(post, commentCount) {
   readMoreBtn.id = `readMoreBtn-${post._id}`;
   readMoreBtn.className = 'text-sm text-purple-400 hover:text-purple-300 hover:underline transition-colors duration-200';
   readMoreBtn.textContent = 'Read More/Comment';
-  readMoreBtn.addEventListener('click', () => expandPost(post._id));
+  readMoreBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    expandPost(post._id);
+  });
 
   const commentSpan = createElementWithText('span', 
     `💬 ${commentCount} comment${commentCount !== 1 ? "s" : ""}`,
