@@ -20,6 +20,8 @@ function updateHeaderNotification() {
 export async function checkForNewPublicComments(allPosts, renderPage, currentPage) {
   if (!allPosts.length) return;
 
+  let hasNewNotifications = false; // Track if we found any new notifications
+
   try {
     for (const post of allPosts) {
       const comments = await fetchComments(post._id);
@@ -36,6 +38,10 @@ export async function checkForNewPublicComments(allPosts, renderPage, currentPag
         );
 
         if (newPublicComments.length > 0) {
+          // Only mark as having new notifications if this post didn't already have them
+          if (!newCommentNotifications.has(post._id)) {
+            hasNewNotifications = true;
+          }
           newCommentNotifications.add(post._id);
           console.log(
             `New public comment detected for post ${post._id}:`,
@@ -48,8 +54,10 @@ export async function checkForNewPublicComments(allPosts, renderPage, currentPag
     // Update header notification count
     updateHeaderNotification();
 
-    // Re-render to show notifications
-    renderPage(currentPage);
+    // Only re-render if we found genuinely new notifications
+    if (hasNewNotifications) {
+      renderPage(currentPage);
+    }
   } catch (err) {
     console.error("Error checking for new comments:", err);
   }
