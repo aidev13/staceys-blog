@@ -15,46 +15,44 @@
     <div class="parallax-background"></div>
 
     <!-- Navbar -->
-    <nav class="bg-gray-800 shadow-md relative">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+<nav class="bg-gray-800 shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <!-- Logo -->
+        <a href="./index.html" class="text-lg font-semibold text-white">
+            DASHBOARD
+        </a>
 
-            <!-- Logo -->
-            <a href="./index.html" class="text-lg font-semibold text-white">
-                AUTHOR'S DASHBOARD
-            </a>
-
-            <!-- Right Section: Bell + Toggle -->
-            <div class="flex items-center gap-4">
-                <!-- Bell Notification -->
-                <div class="relative text-white text-xl flex items-center">
-                    <span>🔔</span>
-                    <span id="headerNotification" class="ml-1 text-sm text-red-400"></span>
-                </div>
-
-                <!-- Hamburger Icon -->
-                <button id="navToggle" class="text-white focus:outline-none z-20">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+        <!-- Right Section: Bell + Toggle -->
+        <div class="flex items-center gap-4">
+            <!-- Bell Notification -->
+            <div class="relative text-white text-xl flex items-center">
+                <span>🔔</span>
+                <span id="headerNotification" class="ml-1 text-sm text-red-400"></span>
             </div>
 
+            <!-- Hamburger Icon -->
+            <button id="navToggle" class="text-white focus:outline-none z-20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
         </div>
+    </div>
 
-        <!-- Dropdown Menu -->
-        <div id="navMenu"
-            class="hidden absolute top-full right-0 mt-2 mr-4 bg-gray-800 rounded shadow-lg flex space-x-4 text-white px-4 py-2">
-            <a href="./public.html"
-                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
-                Public
-            </a>
-            <a href="./login.html"
-                class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2 logout">
-                Logout
-            </a>
-        </div>
-    </nav>
+    <!-- Dropdown Menu -->
+    <div id="navMenu"
+        class="hidden absolute top-full right-0 mt-2 mr-4 bg-gray-800 rounded shadow-lg flex space-x-4 text-white px-4 py-2">
+        <a href="./public.html"
+            class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2">
+            Public
+        </a>
+        <a href="./login.html"
+            class="block text-sm rounded border border-gray-400 hover:bg-gray-700 transition px-4 py-2 logout">
+            Logout
+        </a>
+    </div>
+</nav>
 
 
 

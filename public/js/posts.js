@@ -24,6 +24,19 @@ const postForm = document.getElementById("createPostForm");
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
 
+// Helper function to get current username from token
+function getCurrentUsername() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.username;
+  } catch (error) {
+    return null;
+  }
+}
+
 // Draft auto-save functions
 function saveDraftToStorage() {
   if (titleInput && bodyInput) {
@@ -241,10 +254,11 @@ async function renderPage(page) {
         ? '<span class="inline-block w-3 h-3 bg-red-500 rounded-full ml-2 animate-pulse"></span>'
         : "";
 
-      // Add edit button if user is logged in and it's their post
+      // Add edit button if user is logged in and it's their post - moved to top right as yellow button
+      const currentUsername = getCurrentUsername();
       const editButton =
-        token && post.userId === getCurrentUserId()
-          ? `<button class="edit-post-btn text-sm text-yellow-400 hover:text-yellow-300 ml-4" data-postid="${
+        token && post.author === currentUsername
+          ? `<button class="edit-post-btn bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded text-sm font-medium transition-colors duration-200" data-postid="${
               post._id
             }" data-title="${escapeHtml(post.title)}" data-body="${escapeHtml(
               post.body
@@ -255,15 +269,17 @@ async function renderPage(page) {
         <article class="bg-gray-800 p-6 rounded-lg shadow-md mb-6 ${
           hasNewComments ? "border-2 border-blue-400" : ""
         }">
-          <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center">
-            ${escapeHtml(post.title)}${notificationBadge}
-            ${
-              hasNewComments
-                ? '<span class="text-xs text-blue-400 ml-2"> - New Comment</span>'
-                : ""
-            }
+          <div class="flex items-start justify-between mb-2">
+            <h3 class="text-xl font-semibold text-purple-400 flex items-center">
+              ${escapeHtml(post.title)}${notificationBadge}
+              ${
+                hasNewComments
+                  ? '<span class="text-xs text-blue-400 ml-2"> - New Comment</span>'
+                  : ""
+              }
+            </h3>
             ${editButton}
-          </h3>
+          </div>
           <p class="text-gray-300 mb-2 post-body" data-full="${escapeHtml(
             post.body
           )}" data-index="${index}">
@@ -304,9 +320,163 @@ async function renderPage(page) {
 
 // Add edit post listeners
 function addEditPostListeners() {
-  // Placeholder - original code has this commented out
   const editButtons = document.querySelectorAll(".edit-post-btn");
-  // Original functionality commented out in source
+  editButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const postId = e.target.getAttribute("data-postid");
+      const title = e.target.getAttribute("data-title");
+      const body = e.target.getAttribute("data-body");
+      showEditForm(postId, title, body);
+    });
+  });
+}
+
+// Edit post functionality - updated to match original form styling
+function showEditForm(postId, currentTitle, currentBody) {
+  // Find the post article element
+  const postElement = document.querySelector(`[data-postid="${postId}"]`).closest('article');
+  
+  // Hide the original post content
+  postElement.style.display = 'none';
+  
+  // Create edit form matching original post form styles
+  const editForm = document.createElement('div');
+  editForm.className = 'edit-form bg-gray-800 p-6 rounded-lg shadow-md mb-6 border border-gray-700';
+  editForm.innerHTML = `
+    <h3 class="text-xl font-semibold text-purple-400 mb-6">✏️ Edit Post</h3>
+    <form class="edit-post-form space-y-6">
+      <div>
+        <label for="edit-title-${postId}" class="block text-sm font-medium text-gray-300 mb-2">Post Title</label>
+        <input 
+          type="text" 
+          id="edit-title-${postId}"
+          class="edit-title w-full px-4 py-3 rounded bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-600" 
+          placeholder="Enter your post title..." 
+          value="${escapeHtml(currentTitle)}" 
+          required>
+      </div>
+      <div>
+        <label for="edit-body-${postId}" class="block text-sm font-medium text-gray-300 mb-2">Post Content</label>
+        <textarea 
+          id="edit-body-${postId}"
+          rows="8" 
+          class="edit-body w-full px-4 py-3 rounded bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-600" 
+          placeholder="What's on your mind?" 
+          required>${escapeHtml(currentBody)}</textarea>
+      </div>
+      <div class="flex gap-4">
+         <button 
+            type="submit" 
+            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 text-sm rounded shadow-md transition-colors duration-200">
+            Update Post
+        </button>
+        <button 
+            type="button" 
+            class="cancel-edit bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 text-sm rounded transition-colors duration-200">
+            Cancel
+        </button>
+      </div>
+    </form>
+  `;
+  
+  // Insert the edit form before the original post
+  postElement.parentNode.insertBefore(editForm, postElement);
+  
+  // Add event listeners for the edit form
+  const form = editForm.querySelector('.edit-post-form');
+  const cancelBtn = editForm.querySelector('.cancel-edit');
+  
+  form.addEventListener('submit', (e) => handleEditSubmit(e, postId, editForm, postElement));
+  cancelBtn.addEventListener('click', () => cancelEdit(editForm, postElement));
+  
+  // Focus on title input
+  editForm.querySelector('.edit-title').focus();
+}
+
+async function handleEditSubmit(event, postId, editForm, originalPost) {
+  event.preventDefault();
+  
+  const titleInput = editForm.querySelector('.edit-title');
+  const bodyInput = editForm.querySelector('.edit-body');
+  const submitBtn = editForm.querySelector('button[type="submit"]');
+  
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim();
+  
+  if (!title || !body) {
+    alert('Title and body are required.');
+    return;
+  }
+  
+  // Show loading state
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = '⏳ Updating...';
+  submitBtn.disabled = true;
+  
+  try {
+    const response = await fetch(`${api}/posts/${postId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ title, body })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update post');
+    }
+    
+    const updatedPost = await response.json();
+    
+    // Update the post in allPosts array
+    const postIndex = allPosts.findIndex(p => p._id === postId);
+    if (postIndex !== -1) {
+      allPosts[postIndex] = { ...allPosts[postIndex], ...updatedPost };
+    }
+    
+    // Remove edit form and show success message
+    cancelEdit(editForm, originalPost);
+    
+    // Show success notification
+    showSuccessMessage('✅ Post updated successfully!');
+    
+    // Re-render the current page to show updated content
+    renderPage(currentPage);
+    
+  } catch (error) {
+    console.error('Error updating post:', error);
+    alert('Error updating post: ' + error.message);
+    
+    // Reset button state
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  }
+}
+
+function cancelEdit(editForm, originalPost) {
+  editForm.remove();
+  originalPost.style.display = 'block';
+}
+
+function showSuccessMessage(message) {
+  // Create a temporary success notification
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Fade out and remove after 3 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 3000);
 }
 
 // Toggle Read More

@@ -16,5 +16,15 @@ module.exports = {
     "hover:bg-red-600",
     "ml-2",
     "mt-7",
+    "bg-yellow-500",
+    "hover:bg-yellow-600",
+    "text-black",
+    "px-3",
+    "py-1",
+    "rounded",
+    "text-sm",
+    "font-medium",
+    "transition-colors",
+    "duration-200"
   ],
 };
