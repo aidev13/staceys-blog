@@ -30,6 +30,41 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
+// Update a post (PUT /api/posts/:id)
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    
+    // Check if user owns the post by comparing the author field with the username from token
+    if (post.author !== req.user.username) {
+      return res.status(403).json({ message: 'Not authorized to edit this post' });
+    }
+    
+    const { title, body } = req.body;
+    
+    // Validate required fields
+    if (!title || !body) {
+      return res.status(400).json({ message: 'Title and body are required' });
+    }
+    
+    // Update the post
+    post.title = title;
+    post.body = body;
+    post.updatedAt = new Date();
+    
+    await post.save();
+    
+    res.json(post);
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // ===== NEW LIKE FUNCTIONALITY =====
 
 // POST toggle like on a post
