@@ -109,83 +109,68 @@ function renderPagination() {
         </button>
     `;
 
-  // Ultra compact pagination - max 3 pages
-  let startPage, endPage;
-  
-  if (totalPages <= 3) {
-    // Show all if 3 or fewer
-    startPage = 1;
-    endPage = totalPages;
+  // Maximum 4 page buttons with smart layout
+  if (totalPages <= 4) {
+    // Show all pages if 4 or fewer
+    for (let i = 1; i <= totalPages; i++) {
+      buttonsHTML += `
+              <button
+                  onclick="goToPage(${i})"
+                  class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+                    currentPage === i
+                      ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+                      : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
+                  }"
+              >
+                  ${i}
+              </button>
+          `;
+    }
   } else {
-    // Always show exactly 3 pages
-    if (currentPage === 1) {
-      // At start: [1] [2] [3] ... last
-      startPage = 1;
-      endPage = 3;
-    } else if (currentPage === totalPages) {
-      // At end: 1 ... [last-2] [last-1] [last]
-      startPage = totalPages - 2;
-      endPage = totalPages;
+    // More than 4 pages - show strategic 4 pages
+    let pagesToShow = [];
+    
+    if (currentPage <= 2) {
+      // Near start: [1] [2] [...] [last]
+      pagesToShow = [1, 2];
+      if (totalPages > 3) {
+        pagesToShow.push(totalPages);
+      }
+    } else if (currentPage >= totalPages - 1) {
+      // Near end: [1] [...] [last-1] [last]
+      pagesToShow = [1, totalPages - 1, totalPages];
     } else {
-      // In middle: 1 ... [current-1] [current] [current+1] ... last
-      startPage = Math.max(1, currentPage - 1);
-      endPage = Math.min(totalPages, currentPage + 1);
+      // In middle: [1] [current] [...] [last] or [1] [...] [current] [last]
+      pagesToShow = [1, currentPage, totalPages];
+    }
+    
+    // Remove duplicates and sort
+    pagesToShow = [...new Set(pagesToShow)].sort((a, b) => a - b);
+    
+    // Render the pages with ellipsis
+    for (let i = 0; i < pagesToShow.length; i++) {
+      const page = pagesToShow[i];
+      const nextPage = pagesToShow[i + 1];
       
-      // Ensure we always show 3 pages
-      if (endPage - startPage < 2) {
-        if (startPage === 1) {
-          endPage = Math.min(totalPages, startPage + 2);
-        } else {
-          startPage = Math.max(1, endPage - 2);
-        }
+      // Add the page button
+      buttonsHTML += `
+              <button
+                  onclick="goToPage(${page})"
+                  class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
+                    currentPage === page
+                      ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+                      : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
+                  }"
+              >
+                  ${page}
+              </button>
+          `;
+      
+      // Add ellipsis if there's a gap to the next page
+      if (nextPage && nextPage > page + 1) {
+        buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
       }
     }
-  }
-
-  // Add first page if not in range
-  if (startPage > 1) {
-    buttonsHTML += `
-            <button
-                onclick="goToPage(1)"
-                class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
-            >
-                1
-            </button>
-        `;
-    if (startPage > 2) {
-      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
-    }
-  }
-
-  // Add the 3 main pages
-  for (let i = startPage; i <= endPage; i++) {
-    buttonsHTML += `
-            <button
-                onclick="goToPage(${i})"
-                class="px-4 py-2 rounded-lg transition-colors duration-200 border ${
-                  currentPage === i
-                    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
-                    : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
-                }"
-            >
-                ${i}
-            </button>
-        `;
-  }
-
-  // Add last page if not in range
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      buttonsHTML += `<span class="px-2 py-2 text-gray-400">...</span>`;
-    }
-    buttonsHTML += `
-            <button
-                onclick="goToPage(${totalPages})"
-                class="px-4 py-2 rounded-lg transition-colors duration-200 border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:border-purple-500"
-            >
-                ${totalPages}
-            </button>
-        `;
   }
 
   buttonsHTML += `
@@ -198,6 +183,7 @@ function renderPagination() {
 
   container.innerHTML = `<div class="flex flex-wrap items-center justify-center gap-2">${buttonsHTML}</div>`;
 }
+
 
 // Make functions global so onclick handlers work
 window.goToPage = function(page) {
